@@ -76,10 +76,27 @@ A response may contain both `data` and `errors`, enabling partial results. Put s
 
 ## Real-world examples
 
+These are **illustrative scenarios**, not verified descriptions of any company's internal architecture:
+
 - A mobile client requests a compact product card while a web client requests additional inventory and merchandising fields.
 - A gateway composes customer, order, and shipment data behind one graph.
 - A subscription publishes status changes while queries remain the source for current state.
 - Persisted operations constrain production clients to reviewed query documents.
+
+## Choosing GraphQL or REST
+
+Choose GraphQL when different clients need different subsets of a related domain graph, mobile payloads and request orchestration matter, or one client contract must aggregate several backing services. Choose [REST](../REST/README.md) when standard resource operations, generic HTTP caching, simple service ownership, and operational transparency are more important.
+
+GraphQL's client-selected fields can reduce over-fetching and under-fetching, but only a well-designed schema, bounded queries, batching, and efficient resolvers produce that result. A single endpoint simplifies discovery for clients while requiring operation names and field-level telemetry on the server.
+
+Common misconceptions:
+
+- **“GraphQL replaces REST.”** They solve overlapping but distinct problems and can coexist at different boundaries.
+- **“GraphQL is always faster.”** Parsing, validation, planning, resolver calls, and downstream access have costs; performance depends on the query and implementation.
+- **“REST cannot return related data.”** REST can serve nested or purpose-built representations; GraphQL gives the client more control over selection.
+- **“GraphQL eliminates API versioning.”** Additive fields and deprecation often avoid numbered versions, but breaking schema and semantic changes still need a migration plan.
+
+For a compact feature comparison and explicit API-versioning strategies, see the [REST decision guide](../REST/README.md#rest-versus-graphql-decision-guide).
 
 ## Interview Questions
 
@@ -89,6 +106,8 @@ A response may contain both `data` and `errors`, enabling partial results. Put s
 4. **Does GraphQL eliminate versioning?** It supports additive evolution and deprecation, but breaking changes still require migration.
 5. **How do you prevent expensive queries?** Bound depth and breadth, estimate cost, paginate, rate-limit, timeout, and use persisted operations.
 6. **When should REST and GraphQL coexist?** GraphQL can serve client composition while REST remains useful for service APIs and cacheable resources.
+7. **Why choose GraphQL over REST?** It gives diverse clients precise control over related response data and can reduce client-side orchestration.
+8. **Why choose REST over GraphQL?** Standard HTTP APIs are generally simpler to cache, monitor, secure, and operate for resource-oriented use cases.
 
 ## Interview Tips
 
@@ -101,3 +120,9 @@ Discuss the full execution path: parse, validate, authorize, plan, resolve, batc
 - [GraphQL over HTTP](https://graphql.github.io/graphql-over-http/draft/)
 - [GraphQL security guidance](https://graphql.org/learn/security/)
 - [DataLoader](https://github.com/graphql/dataloader)
+
+## Provenance
+
+- **Source-derived:** GraphQL's definition, client-selected data benefits, limitations, selection scenarios, REST coexistence, misconceptions, versioning qualification, and interview questions were restored from `01-Backend.md`.
+- **Editorial additions:** existing schema execution, N+1 mitigation, authorization, query-cost controls, nullability, partial errors, and observability guidance was retained to make the decision criteria production-ready.
+- **Professional corrections:** “single endpoint” is described as common rather than mandatory; over/under-fetching and versionless evolution are qualified rather than guaranteed; examples are explicitly illustrative and not claims about verified company internals.

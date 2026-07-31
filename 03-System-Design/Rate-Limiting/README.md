@@ -65,3 +65,20 @@ Return HTTP `429 Too Many Requests` with useful quota headers and `Retry-After` 
 - [Google SRE: Handling Overload](https://sre.google/sre-book/handling-overload/)
 - [AWS Builders' Library: Fairness in Multi-Tenant Systems](https://aws.amazon.com/builders-library/fairness-in-multi-tenant-systems/)
 - [Related: Load Balancing](../Load-Balancing/README.md)
+
+## Architecture-source routing context
+
+The architecture source places rate limiting among API-gateway cross-cutting concerns alongside routing, authentication, authorization, TLS termination, request validation/transformation, aggregation, logging, monitoring, and load balancing. A gateway can protect backend services from excessive client traffic and provide one policy point, but the gateway must remain highly available and must not own business logic.
+
+Direct service access may be adequate for small systems; an API gateway becomes useful with multiple backend services, a unified client API, or shared authentication and policy. It complements rather than replaces a load balancer: the gateway manages API semantics while the balancer distributes traffic among healthy instances. Service discovery separately locates dynamic instances.
+
+## Professional correction
+
+- Gateway-only rate limiting is insufficient when internal callers, queues, or alternate ingress paths can bypass it; retain service/dependency-level admission control.
+- Rate limiting protects a configured capacity model but does not itself guarantee security, fairness, or availability.
+- A gateway is not mandatory for every application and introduces an extra hop, operational cost, bottleneck risk, and failure domain.
+
+## Provenance
+
+- **Source-derived:** API-gateway rate-limiting responsibility, gateway alternatives, trade-offs, and gateway/load-balancer/discovery distinctions were restored from `03-Architecture.md`.
+- **Editorial:** Algorithms, distributed enforcement, failure behavior, references, cross-links, and `Professional correction` provide canonical rate-limiting depth.

@@ -61,3 +61,70 @@ Freshness uses TTLs, explicit invalidation after writes, or change events. Capac
 - [Redis: Cache Eviction](https://redis.io/docs/latest/develop/reference/eviction/)
 - [RFC 9111: HTTP Caching](https://www.rfc-editor.org/rfc/rfc9111)
 - [Related: Scalability](../Scalability/README.md)
+
+## Source coverage supplement
+
+```text
+           Client
+              │
+              ▼
+         Application
+              │
+        Cache Lookup
+         ┌────┴────┐
+         │         │
+    Cache Hit  Cache Miss
+         │         │
+         ▼         ▼
+    Return Data  Database
+                     │
+                     ▼
+              Update Cache
+                     │
+                     ▼
+               Return Data
+```
+
+Caching is most useful when reads dominate writes, source queries are expensive, latency matters, data changes infrequently enough to tolerate a freshness policy, or a backend is under load. Product catalogs, profiles, configuration, sessions, search results, and frequently viewed content are common candidates. Alternatives include no cache for small systems, process memory for a single instance, a distributed cache for scaled applications, and a CDN for public/static content.
+
+| Strategy | Read performance | Write performance | Consistency tendency | Representative fit |
+| --- | --- | --- | --- | --- |
+| Cache-aside | High after warm-up | High | Eventual | Read-heavy catalogs and profiles |
+| Read-through | High after warm-up | Moderate | Eventual | Cache provider owns loading |
+| Write-through | High | Moderate/slower | Fresher, not inherently atomic | Frequently read data needing coordinated writes |
+| Write-behind | Very high | Very high | Eventual with durability risk | High write throughput and buffering |
+
+Invalidation may expire entries by TTL, update source and cache on a write, delete a cache-aside entry after a source change, or publish a change event so distributed consumers invalidate locally. TTL fits catalogs, news, weather, and public APIs; explicit cache-aside invalidation fits many read-heavy web applications; coordinated writes fit stricter freshness; events fit microservices.
+
+| Eviction | Removes | Representative fit |
+| --- | --- | --- |
+| LRU | Least recently accessed | General-purpose data, sessions, catalogs |
+| LFU | Least frequently accessed | Reused datasets and recommendations |
+| FIFO | Oldest inserted | Simple workloads |
+| Random | Arbitrary entry | Very simple implementations |
+
+Invalidation improves accuracy and controls memory but causes more misses and source load; aggressive invalidation trades cache effectiveness for freshness. Warming preloads likely-hot data at startup, on a schedule, or in the background.
+
+The source’s complete failure set is: stampede (many requests rebuild one key; coalesce, lock, refresh early/background), penetration (repeated absent keys; Bloom filter or negative cache), avalanche (many simultaneous expirations; randomized/staggered TTLs or multilevel caching), and cold-cache warming.
+
+Caching is not mandatory, more cache is not always faster, cached values are not automatically correct, and cache does not replace indexes, query design, or schema design. Invalidation may update rather than delete. Longer TTL increases stale-data risk; LRU is not universally best; a stampede can happen whenever requests converge on one expired key, not only at globally high traffic.
+
+## Expanded interview questions
+
+1. What are a cache hit, miss, invalidation, and eviction?
+2. Cache-aside versus write-through; when would write-behind be justified?
+3. What data should not be cached, and when should Redis replace process memory?
+4. How do expiration, explicit invalidation, and events prevent stale data?
+5. Why is invalidation hard; LRU versus LFU; and which Redis eviction policy fits a given workload?
+6. How do stampede, penetration, avalanche, and warming differ?
+
+## Professional correction
+
+- Write-through provides fresher cache contents only when failure handling is defined; two independent writes do not create strong consistency by themselves.
+- Write-behind acknowledgement before durable persistence can lose accepted writes and should not be described only as a performance optimization.
+- Bloom filters can reduce penetration but have false positives and lifecycle costs; short negative caching is often simpler.
+
+## Provenance
+
+- **Source-derived:** Cache lookup diagram, strategy and eviction comparisons, use cases, alternatives, invalidation choices, failure modes, misconceptions, and expanded questions were restored from `03-Architecture.md`.
+- **Editorial:** Key-shape/security guidance, operational telemetry, references, cross-links, and `Professional correction` add production context.

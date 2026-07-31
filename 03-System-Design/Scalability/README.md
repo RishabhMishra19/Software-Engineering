@@ -61,3 +61,22 @@ Replication improves read capacity and availability but introduces lag and failo
 - [AWS Well-Architected: Performance Efficiency](https://docs.aws.amazon.com/wellarchitected/latest/performance-efficiency-pillar/welcome.html)
 - [Azure Architecture Center: Data Partitioning](https://learn.microsoft.com/azure/architecture/best-practices/data-partitioning)
 - [Related: Distributed Systems](../Distributed-Systems/README.md)
+
+## Architecture-source selection guidance
+
+The architecture source maps growing traffic to horizontal scaling, database-load reduction to caching, independently scaled reads to CQRS, independently scaled services to microservices, and changing infrastructure to service discovery. Treat these as candidates to evaluate after measuring the bottleneck, not automatic one-to-one prescriptions. Monoliths can scale vertically and horizontally; microservices are justified when independent capability scaling and deployment outweigh network and operational costs.
+
+For availability, the source pairs instance failures with load balancing, service failures with circuit breakers, transient outages with retry, resource isolation with bulkheads, and continued reduced service with fallback. These mechanisms complement capacity planning and do not individually guarantee availability.
+
+Relevant source scenarios ask how to handle 100 million reads per day, a 50:1 read/write ratio, database CPU above 90%, zero-downtime deployment, and dynamically changing service instances. A sound answer states workload and SLO assumptions, profiles first, optimizes queries/indexes, then evaluates caching, replicas/CQRS, horizontal compute, discovery, and traffic control.
+
+## Professional correction
+
+- High read volume or a 50:1 ratio alone does not justify CQRS; replicas, indexes, caching, and simpler read models may solve the actual bottleneck.
+- Horizontal scaling does not remove state, consistency, partition skew, or downstream limits.
+- Microservices are not a general scaling prerequisite; a replicated monolith may satisfy substantial traffic.
+
+## Provenance
+
+- **Source-derived:** Scalability/availability decision mappings, monolith-scaling misconception, and scenario prompts were restored from `03-Architecture.md`.
+- **Editorial:** Capacity workflow, failure analysis, references, cross-links, and `Professional correction` add production criteria.

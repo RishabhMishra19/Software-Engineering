@@ -87,6 +87,88 @@ Return machine-readable, stable error types with safe detail and correlation met
 - `POST /payments` accepts an idempotency key to deduplicate retried submissions.
 - `GET /events?after=<cursor>&limit=50` provides stable cursor pagination.
 
+## REST versus GraphQL decision guide
+
+REST exposes resource representations through HTTP methods and multiple resource-oriented endpoints. [GraphQL](../GraphQL/README.md) exposes a typed schema through which clients select fields, commonly at one endpoint.
+
+### When REST is a strong fit
+
+- Standard CRUD or resource-oriented APIs.
+- Simple contracts with mature HTTP tooling and intermediary caching.
+- Independently owned service APIs and clients with broadly similar data needs.
+- Operations where distinct endpoints improve monitoring and debugging.
+
+REST may over-fetch a fixed representation or require several requests to assemble related data. Purpose-built representations can reduce calls, but they increase API surface and coupling.
+
+### When GraphQL is a strong fit
+
+- Web and mobile clients need different subsets of related data.
+- A frontend contract aggregates several backend sources.
+- Reducing client-managed round trips and payload waste materially improves the product.
+- Schema discovery and additive field evolution justify additional server controls.
+
+GraphQL query validation, cost control, authorization, caching, monitoring, and error semantics are more involved. It does not automatically make an API faster.
+
+| Feature | REST | GraphQL |
+| --- | --- | --- |
+| Interface | Multiple resource endpoints | Commonly one endpoint with named operations |
+| Response shape | Server-defined representation | Client-selected fields |
+| Over/under-fetching | Possible | Reduced when schema and queries are well designed |
+| Caching | Strong generic HTTP support | Usually client normalization, resolver, or persisted-response caching |
+| Evolution | Compatible additions plus explicit strategy for breaking changes | Additive fields and deprecation; breaking changes still require migration |
+| Learning and operations | Lower for standard HTTP APIs | Higher due to execution and query controls |
+| Strong fit | CRUD, service APIs, cacheable resources | Related data, diverse frontends, aggregation |
+
+REST and GraphQL can coexist: service boundaries can remain RESTful while a GraphQL gateway provides frontend composition. GraphQL is an alternative API style, not a universal replacement, and REST can return nested or related representations.
+
+## API versioning strategy
+
+Versioning manages breaking contract or semantic changes while existing consumers migrate. It supports backward compatibility, safe evolution, and client-controlled adoption, but every concurrently supported version adds implementation, testing, documentation, and deprecation cost.
+
+### URI versioning
+
+```http
+GET /api/v1/users
+GET /api/v2/users
+```
+
+It is visible, widely understood, simple to route, and easy to document. It changes resource URLs and can duplicate endpoint families.
+
+### Header versioning
+
+```http
+API-Version: 2
+```
+
+It keeps URLs stable and separates resource identity from version selection, but is less visible and less convenient to test manually.
+
+### Query-parameter versioning
+
+```http
+GET /users?version=2
+```
+
+It is easy to implement but uncommon and generally not preferred for a durable public API contract.
+
+### Media-type content negotiation
+
+```http
+Accept: application/vnd.example.v2+json
+```
+
+It preserves resource URLs and uses HTTP negotiation, but is harder to understand, configure, and inspect.
+
+| Strategy | Readability | Adoption | Typical guidance |
+| --- | --- | --- | --- |
+| URI | Excellent | High | Common, simple default |
+| Header | Good | Medium | Useful when clean URLs matter |
+| Query parameter | Fair | Low | Generally avoid for public versioning |
+| Media type | Moderate | Medium | Advanced negotiation-driven APIs |
+
+Create a new version for changes such as removing or renaming fields, changing required request shape, changing incompatible response structure or business semantics, or removing endpoints. Do not version merely for optional fields, performance work, compatible bug fixes, or internal implementation changes.
+
+A safe deprecation process releases the replacement, documents the migration and deadline, continues old-version support for the announced period, measures client adoption, communicates with remaining consumers, and removes the old version only after policy conditions are met. Versioning is a mechanism, not automatic compatibility.
+
 ## Interview Questions
 
 1. **What makes an API RESTful?** Resource identification, uniform HTTP semantics, self-contained requests, representations, cacheability, and layered components.
@@ -95,6 +177,11 @@ Return machine-readable, stable error types with safe detail and correlation met
 4. **When should an API be versioned?** When a breaking contract or semantic change cannot be introduced compatibly.
 5. **REST or GraphQL?** REST favors HTTP semantics and caching; [GraphQL](../GraphQL/README.md) favors flexible client-selected data.
 6. **How do ETags prevent lost updates?** A client submits the previously observed validator with `If-Match`; stale updates fail precondition checks.
+7. **Why choose REST over GraphQL?** It is simpler to implement, cache, inspect, and operate for standard resource APIs.
+8. **Can REST and GraphQL coexist?** Yes; use each at the boundary where its trade-offs fit.
+9. **Does GraphQL eliminate versioning?** No; additive evolution reduces explicit versions, but breaking schema changes still require migration.
+10. **Which API versioning strategy should you prefer?** URI versioning is a common simple default, but the contract, clients, and infrastructure determine the choice.
+11. **How do you deprecate an API?** Publish a replacement and timeline, support migration, monitor adoption, communicate, and remove only after the policy deadline.
 
 ## Interview Tips
 
@@ -108,3 +195,9 @@ Use precise HTTP terminology. Explain method safety separately from idempotency,
 - [RFC 5789: PATCH Method](https://www.rfc-editor.org/rfc/rfc5789)
 - [OpenAPI Specification](https://spec.openapis.org/oas/latest.html)
 - [Roy Fielding's REST dissertation chapter](https://ics.uci.edu/~fielding/pubs/dissertation/rest_arch_style.htm)
+
+## Provenance
+
+- **Source-derived:** REST/GraphQL definitions, advantages, limitations, selection criteria, comparison matrix, coexistence guidance, versioning benefits and costs, four strategy examples, comparison, deprecation process, misconceptions, and interview questions were restored from `01-Backend.md`.
+- **Editorial additions:** existing HTTP semantics, caching, conditional requests, idempotency, pagination, and Problem Details guidance was retained to make the source decisions operational.
+- **Professional corrections:** GraphQL does not categorically avoid over/under-fetching or eliminate versions; `example` replaces a company-like media-type placeholder; versioning is tied to breaking contracts rather than every behavior change, and no illustration claims verified company internals.
