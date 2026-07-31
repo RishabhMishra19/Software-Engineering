@@ -174,6 +174,719 @@ For a ticketing system, explicitly discuss concurrent seat claims. An in-memory 
 - **No trade-off discussion:** every abstraction adds types, indirection, and debugging cost.
 - **Overengineering:** defer speculative extension points and refactor when evidence appears.
 
+### Source-derived OOP tutorial
+
+As applications grow, functions become hard to manage, data gets scattered, and code becomes difficult to extend. OOP organizes software around:
+
+```text
+Objects = Data + Behavior
+```
+
+For example, an Uber-like domain is described with `Driver`, `Passenger`, `Ride`, `Vehicle`, and `Payment` objects.
+
+#### Class versus object
+
+A class is a blueprint; an object is an actual runtime instance.
+
+```java
+class Driver {
+    String name;
+    String vehicleNumber;
+}
+
+Driver driver = new Driver();
+```
+
+```text
+Class = Blueprint
+Object = Real Thing
+```
+
+#### Abstraction walkthrough
+
+When a rider books a ride, they do not need to know how drivers are matched, prices are calculated, or payments are processed. Expose the useful action and hide those details:
+
+```java
+Ride ride = rideService.bookRide();
+```
+
+The user sees “Book Ride,” not matching, pricing, or payment internals. The benefits are reduced complexity and easier usage.
+
+#### Encapsulation walkthrough
+
+Public state permits invalid changes:
+
+```java
+account.balance = -10000;
+```
+
+Put state transitions behind behavior:
+
+```java
+class Account {
+    private double balance;
+
+    public void withdraw(double amount) {
+        // validate and update
+    }
+}
+```
+
+Banking systems do not expose balances for arbitrary mutation. Encapsulation protects data and creates a validation boundary.
+
+> **Professional correction:** Encapsulation is not merely `private` data. Operations must actually enforce invariants, as the `Money`-based account example above demonstrates.
+
+#### Inheritance and polymorphism walkthrough
+
+`Car` and `Bike` may share a stable `Vehicle` contract such as `numberPlate`, `owner`, and `start()`:
+
+```text
+Vehicle
+ ├── Car
+ └── Bike
+```
+
+```java
+class Vehicle {
+    String numberPlate;
+}
+```
+
+The tutorial benefit is shared code and common behavior. The common mistake is inheritance solely for reuse.
+
+Payment methods illustrate polymorphism: the same `pay()` action can dispatch to UPI, card, or wallet behavior at runtime.
+
+```java
+PaymentMethod payment;
+payment.pay();
+```
+
+Razorpay, Stripe, and PayPal are familiar provider examples: one client-facing capability, multiple implementations.
+
+> **Professional correction:** Code reuse alone does not justify inheritance. An **IS-A** subtype must honor the parent contract; use **HAS-A** composition when behavior varies independently.
+
+#### Composition and aggregation walkthrough
+
+One object can be assembled from collaborators:
+
+```java
+class Ride {
+    Driver driver;
+    Vehicle vehicle;
+}
+```
+
+The source uses an Amazon order illustration:
+
+```text
+Order
+ ├── Customer
+ ├── Payment
+ └── Items
+```
+
+A weak whole–part example is:
+
+```java
+class Team {
+    List<Player> players;
+}
+```
+
+Players can exist if the team is removed, just as employees can survive removal of a department.
+
+```text
+Composition = Strong ownership
+Aggregation = Weak ownership
+```
+
+> **Professional correction:** A field or “uses” relationship does not by itself establish UML composition or aggregation. `Ride`–`Driver` is normally an association because `Ride` does not own the driver's lifecycle; shared aggregation is intentionally weak and a plain association is often clearer.
+
+#### OOP critical learnings and interview answers
+
+- Abstraction hides unnecessary complexity.
+- Encapsulation protects valid state.
+- Inheritance shares a genuine subtype contract; polymorphism allows one contract to have many implementations.
+- Composition is preferred over deep inheritance for flexible behavior.
+- Aggregation denotes weaker ownership.
+- **Class vs object?** Blueprint versus instance.
+- **Why prefer composition over inheritance?** Lower coupling and more flexibility.
+- **Real-world polymorphism example?** Payment gateways.
+- **Real-world encapsulation example?** A bank account balance.
+
+Fast revision:
+
+| Concept | Remember |
+| --- | --- |
+| Class | Blueprint |
+| Object | Instance |
+| Abstraction | Hide complexity |
+| Encapsulation | Protect valid state |
+| Inheritance | Genuine IS-A specialization |
+| Polymorphism | One contract, many implementations |
+| Composition | Exclusive whole–part ownership in UML |
+| Aggregation | Weak whole–part relationship |
+
+### Source-derived object-modelling tutorial
+
+Bad object modelling creates wrong abstractions, tight coupling, poor extensibility, and messy design. Good modelling makes much of the implementation obvious.
+
+```text
+Beginner: Read Problem → Start Coding
+
+Senior:   Find Nouns
+          ↓
+          Find Relationships
+          ↓
+          Find Ownership
+          ↓
+          Find Behaviors
+          ↓
+          Start Coding
+```
+
+Do **not** start from pattern names. The source's negative anti-flow is:
+
+```text
+Find Design Patterns
+```
+
+Pattern-first selection skips nouns, ownership, and behavior and usually produces the wrong abstractions.
+
+Use this running requirement:
+
+```text
+User books seats for a movie show in a theatre.
+```
+
+1. **Find nouns.** `User`, `Seat`, `Movie`, `Show`, and `Theatre` are candidate classes.
+2. **Remove fake objects.** “User clicks button” does not make `Button` a business class. Likewise, `SearchButton`, `SubmitButton`, and `MoviePage` are UI terms, not domain objects here.
+3. **Find core entities.** Ask what information must survive. For BookMyShow, likely core concepts are `User`, `Movie`, `Show`, `Seat`, and `Booking`.
+4. **Find relationships and ownership.** Requirements often hide them in sentences:
+
+```text
+A theatre contains screens: Theatre → Screen
+A screen contains seats:    Screen  → Seat
+A movie has shows:          Movie   → Show
+```
+
+```text
+Theatre
+   ↓
+ Screen
+   ↓
+  Seat
+```
+
+5. **Find behavior.** Important objects should not be data bags.
+
+Bad:
+
+```java
+class Booking {
+    String id;
+    String status;
+}
+```
+
+Better:
+
+```java
+class Booking {
+    void confirm() {}
+    void cancel() {}
+}
+```
+
+Walk the scenario “User books a seat”:
+
+```text
+User → Booking → Seat
+
+Booking → confirm()
+Booking → cancel()
+Seat    → reserve()
+Seat    → release()
+```
+
+> **Professional correction:** A reusable physical `Seat` and its per-show availability are different concepts. `ShowSeat` is often the better owner of `reserve()`/`release()` because availability belongs to one show.
+
+The modelling mistakes are: creating a class for every noun, ignoring ownership, selecting Strategy/Factory/Observer before the model, and coding before modelling. The reliable order is:
+
+```text
+Find Nouns
+↓
+Remove Fake Objects
+↓
+Find Relationships and Ownership
+↓
+Find Behaviors
+↓
+Start Coding
+```
+
+Critical learnings and answers:
+
+- Objects begin with important business nouns, but not every noun becomes a class.
+- Relationships and ownership matter more than patterns.
+- Ownership drives design quality.
+- Good modelling makes implementation easier; patterns come after the model.
+- **How do you identify classes?** Find important business nouns, then filter by domain relevance, identity, value, behavior, and persistence needs.
+- **How do you identify relationships?** Read requirements for ownership, collaboration, navigation, and lifecycle.
+- **Biggest modelling mistake?** Creating classes for everything.
+- **What comes before patterns and coding?** Object modelling.
+
+### Source-derived dependency-injection tutorial
+
+A dependency is a collaborator a class needs:
+
+```java
+class Car {
+    Engine engine;
+}
+```
+
+Without injection, business logic controls construction:
+
+```java
+class PaymentService {
+    private RazorpayGateway gateway = new RazorpayGateway();
+}
+```
+
+This tightly couples the service to Razorpay, makes Stripe/PayPal replacement and mock testing difficult, and mixes business logic with object creation. DI receives the dependency from outside:
+
+```java
+class PaymentService {
+    private final PaymentGateway gateway;
+
+    public PaymentService(PaymentGateway gateway) {
+        this.gateway = gateway;
+    }
+}
+```
+
+The service can now work with Razorpay, Stripe, PayPal, or a `MockGateway`.
+
+#### Injection forms
+
+Constructor injection is normally preferred for required dependencies:
+
+- construction cannot omit the dependency;
+- fields can be immutable;
+- requirements are explicit;
+- unit testing is straightforward.
+
+Setter injection supplies an optional or reconfigurable dependency later:
+
+```java
+class PaymentService {
+    private PaymentGateway gateway;
+
+    public void setGateway(PaymentGateway gateway) {
+        this.gateway = gateway;
+    }
+}
+```
+
+Its risks are partial initialization and a setter that is never called. Field injection is terse:
+
+```java
+@Autowired
+private PaymentGateway gateway;
+```
+
+but hides requirements, is less explicit, and complicates isolated unit construction.
+
+#### DI, IoC, and DIP
+
+| Concept | Meaning | Example |
+| --- | --- | --- |
+| DI | Technique: how a dependency arrives | Constructor injection |
+| IoC | Broader principle: control moves outside | Spring container controls construction |
+| DIP | Design principle: dependency direction | Policy depends on a stable abstraction |
+
+Traditional construction:
+
+```java
+class Car {
+    Engine engine = new PetrolEngine();
+}
+```
+
+With external control:
+
+```java
+class Car {
+    Engine engine;
+}
+```
+
+`PaymentGateway gateway;` expresses the abstraction chosen for DIP; passing it through the constructor is DI.
+
+The testing contrast is:
+
+```java
+// Without an injectable collaborator
+PaymentService service = new PaymentService();
+
+// With DI
+PaymentGateway mockGateway = new MockGateway();
+PaymentService service = new PaymentService(mockGateway);
+```
+
+> **Professional correction:** DI is not a Spring feature and does not require a container. Injecting a concrete dependency can still improve construction and testing; injecting an interface does not by itself satisfy DIP if the contract mirrors a vendor or is owned by the wrong layer.
+
+Critical learnings and answers:
+
+- DI reduces coupling and improves testability.
+- Constructor injection is usually preferred; DI helps implement DIP.
+- Spring is one DI framework, not the definition of DI.
+- **What problem does DI solve?** Hidden construction and tight coupling.
+- **DI vs IoC?** DI is a technique; IoC is the broader transfer of control.
+- **DI vs DIP?** DI says how a collaborator arrives; DIP says what direction dependencies should point.
+- **Constructor vs setter?** Required and valid-at-construction versus genuinely optional/reconfigurable.
+
+```text
+Bad:   new Dependency() throughout business logic
+Good:  Receive dependencies
+Great: Depend on policy-shaped abstractions and use constructor injection
+```
+
+### Source-derived design-decision cards
+
+#### Factory vs Builder
+
+| Factory | Builder |
+| --- | --- |
+| Chooses or creates an object | Builds one object step by step |
+| Usually one call | Usually multiple construction steps |
+| Focuses on product selection/creation | Focuses on complex assembly |
+| Example: payment-gateway factory | Example: Amazon search-request builder |
+
+```text
+Need to choose/create a product? → Factory
+Need complex staged construction? → Builder
+```
+
+#### Strategy vs State
+
+| Strategy | State |
+| --- | --- |
+| Behavior selected externally | Behavior changes with internal lifecycle |
+| Client/configuration chooses | Context state governs permitted behavior |
+| Algorithms vary | State transitions vary |
+| Example: Uber pricing | Example: Swiggy order lifecycle |
+
+```text
+Strategy: Client ─┬─ GoPricing
+                  └─ XLPricing
+
+State: Created → Confirmed → Delivered
+```
+
+```text
+Behavior selected?             → Strategy
+Behavior changes due to state? → State
+```
+
+#### Observer vs brokered publish/subscribe
+
+| Observer | Pub/sub |
+| --- | --- |
+| Publisher communicates with subscribers | Producer communicates through a broker |
+| Publisher knows subscriber objects | Producer need not know consumers |
+| Commonly in-process | Often distributed |
+| Example: Instagram follower notification | Example: Kafka |
+
+```text
+Observer: Instagram ─┬→ A
+                     ├→ B
+                     └→ C
+
+PubSub: Producer → Kafka ─┬→ A
+                          ├→ B
+                          └→ C
+```
+
+```text
+Same-process direct notification? → Observer
+Brokered/distributed decoupling?   → Pub/sub
+```
+
+> **Professional correction:** “Same process” and “distributed” are useful signals, not definitions. The decisive distinction is direct subject–observer registration versus broker-mediated temporal/network decoupling.
+
+#### Entity vs Service
+
+| Entity | Service |
+| --- | --- |
+| Has business identity and continuity | Performs a cohesive operation |
+| Holds state and behavior that protect its invariants | Coordinates work or expresses behavior that belongs to no entity naturally |
+| Example: `User`, `Booking` | Example: `UserService`, booking application service |
+
+```java
+class User {
+    Long id;
+    String name;
+}
+
+class UserService {
+    void createUser() {}
+}
+```
+
+```text
+Behavior protects one entity/aggregate invariant? → Entity
+Behavior spans collaborators or belongs nowhere naturally? → Service
+```
+
+> **Professional correction:** “Data → Entity, behavior → Service” creates an anemic model. Entities should own invariant-preserving behavior; application services orchestrate persistence, external systems, and use cases. Services are not necessarily stateless.
+
+#### Interface vs abstract class
+
+| Interface | Abstract class |
+| --- | --- |
+| Client-facing capability contract | Partial implementation and shared invariant |
+| A class may implement several | A class may extend only one |
+| No per-instance mutable state | May hold instance state and constructors |
+| Example: `PaymentGateway` | Example: `BaseNotification` |
+
+```text
+Need a capability contract or multiple roles? → Interface
+Need cohesive shared state, code, or hooks?     → Abstract class
+```
+
+#### Cohesion vs coupling
+
+| Cohesion | Coupling |
+| --- | --- |
+| How strongly responsibilities within a module belong together | How strongly modules depend on each other's decisions |
+| Aim high | Keep only deliberate, necessary coupling |
+
+```text
+Low cohesion:  UserService = Authentication + Payments + Emails + Reports
+High cohesion: AuthService | PaymentService | NotificationService
+
+High coupling: PaymentService → RazorpayGateway
+Lower coupling: PaymentService → PaymentGateway
+```
+
+#### IS-A vs HAS-A
+
+| IS-A | HAS-A |
+| --- | --- |
+| Inheritance/generalization | Composition or, more generally, collaboration/association |
+| Requires behavioral substitutability | Supports flexible delegation |
+
+```text
+Car IS-A Vehicle
+Vehicle
+   ↑
+  Car
+
+Car HAS-A Engine
+Car ─── Engine
+```
+
+Prefer HAS-A when the relationship is collaboration or independently varying behavior. Use IS-A only when inheritance is genuinely natural and the subtype preserves the base contract.
+
+> **Professional correction:** HAS-A does not automatically mean UML composition. Decide association, aggregation, or composition from ownership and lifecycle.
+
+#### Aggregation vs composition
+
+| Aggregation | Composition |
+| --- | --- |
+| Weak whole–part semantics | Exclusive, strong whole–part ownership |
+| Part can exist independently | Part belongs to at most one whole and normally follows its lifecycle |
+
+```text
+Aggregation: Department ─── Employee
+Employee can exist independently.
+
+Composition: Order ◆── OrderItem
+OrderItem belongs to its Order.
+```
+
+```text
+Independent lifecycle? → Aggregation or plain association
+Exclusive dependent lifecycle? → Composition
+```
+
+The decision-card takeaways are: Factory and Builder solve different creation problems; Strategy and State solve different behavior problems; Observer and pub/sub are distinct; prefer stable client-shaped contracts over concrete vendors; favor composition for independent variation; and aim for high cohesion with deliberate low coupling.
+
+Interview answers:
+
+- **Strategy vs State?** External/configured algorithm selection versus lifecycle-driven behavior.
+- **Factory vs Builder?** Product selection/creation versus complex construction.
+- **Observer vs pub/sub?** Direct subject–subscriber collaboration versus broker-mediated communication.
+- **Interface vs abstract class?** Capability contract versus shared implementation/state.
+- **Aggregation vs composition?** Weak shared whole–part semantics versus exclusive ownership.
+- **Ideal structural goal?** High cohesion and low, explicit coupling.
+
+Fast revision:
+
+| Comparison | Remember |
+| --- | --- |
+| Factory vs Builder | Choose/create vs construct |
+| Strategy vs State | Selected algorithm vs lifecycle behavior |
+| Observer vs PubSub | Direct vs brokered |
+| Entity vs Service | Identity/invariants vs orchestration/cross-object operation |
+| Interface vs Abstract Class | Contract vs shared implementation/state |
+| Cohesion vs Coupling | High vs deliberate low |
+| IS-A vs HAS-A | Subtyping vs delegation/collaboration |
+| Aggregation vs Composition | Weak vs exclusive ownership |
+
+### Source-derived LLD interview walkthrough
+
+Do not jump into classes. Use the complete flow:
+
+```text
+Requirements
+↓
+Entities
+↓
+Relationships
+↓
+Patterns
+↓
+APIs
+↓
+Concurrency
+↓
+Follow Ups
+```
+
+1. **Gather requirements.** Ask about core features, assumptions, scale, and whether users act concurrently.
+
+   Bad:
+
+   ```text
+   Interviewer: Design BookMyShow
+   Candidate: Let's create Movie class...
+   ```
+
+   Better:
+
+   ```text
+   Can users book multiple seats?
+   Can booking fail midway?
+   Should seats be locked?
+   ```
+
+2. **Identify candidate entities.** For a parking lot, nouns suggest `ParkingLot`, `ParkingFloor`, `ParkingSpot`, `Vehicle`, and `Ticket`. Treat “nouns → candidate entities” as a discovery aid, not an automatic mapping.
+3. **Identify relationships.** Ask “Who owns whom?” and “Who talks to whom?”
+
+   ```text
+   ParkingLot
+    └── ParkingFloor
+         └── ParkingSpot
+   ```
+
+   Use association, composition, and inheritance only when their semantics are needed.
+4. **Identify pattern pressure.**
+
+   | Requirement signal | Candidate pattern |
+   | --- | --- |
+   | Multiple algorithms | Strategy |
+   | State transitions | State |
+   | Notifications | Observer |
+   | Product-selection complexity | Factory |
+   | Complex staged construction | Builder |
+
+   Start simple; do not force a pattern.
+5. **Define APIs from requirements, not imagination.**
+
+   ```java
+   parkVehicle(vehicle)
+   unparkVehicle(ticket)
+   findSpot(vehicle)
+   ```
+
+6. **Think about concurrency.** Ask whether two users can modify the same authoritative data.
+
+   | Problem | Concern |
+   | --- | --- |
+   | BookMyShow | Seat locking |
+   | Splitwise | Balance updates |
+   | Ride sharing | Driver assignment |
+   | ATM | Concurrent withdrawals |
+   | Inventory systems | Stock reservation and overselling |
+
+   Many candidates skip this step even after listing entities and APIs.
+
+7. **Discuss follow-ups.** Examples include EV vehicles, multiple cities, multiple payment methods, and notifications. Interviewers often use these changes to evaluate extensibility and trade-off reasoning.
+
+Critical learnings:
+
+- Requirements matter more than code.
+- Good object modelling resolves much of the design.
+- Patterns are tools, not goals.
+- Concurrency is frequently missed.
+- Follow-ups often determine interview performance.
+
+```text
+Don't design classes first.
+Design understanding first.
+```
+
+### Source-derived mistake clinic
+
+1. **Jumping to classes too early.** Listing `Movie`, `Theatre`, `Seat`, and `Booking` before requirements creates wrong assumptions. Use `Requirements → Entities → Design`.
+2. **Pattern-first thinking.** Saying “I will use Strategy” before understanding the problem causes overengineering. Use `Problem → Pattern`, never `Pattern → Problem`.
+3. **Huge god classes.** A `UserService` that owns authentication, payments, emails, and reports violates SRP and is difficult to test and maintain. Split cohesive capabilities such as `AuthService`, `PaymentService`, and `NotificationService`.
+4. **Unnecessary inheritance.**
+
+   ```text
+   Vehicle
+    ├── Car
+    ├── Bike
+    ├── Truck
+    ├── ElectricCar
+    ├── SportsCar
+    └── LuxuryCar
+   ```
+
+   This hierarchy explodes when dimensions vary; compose variable behavior.
+5. **Large type conditionals.**
+
+   ```java
+   if (type == GO) {}
+   else if (type == XL) {}
+   else if (type == PREMIER) {}
+   ```
+
+   They can violate OCP when an open set of behavior keeps growing; Strategy is one candidate.
+
+   > **Professional correction:** A closed, small enum or lookup table can be clearer than polymorphism. Use Strategy only when variation is behavior-rich or independently extensible.
+6. **Ignoring concurrency.** Seat booking without an authoritative atomic hold can double-book. Also check ATM, ride assignment, Splitwise, and inventory systems.
+7. **Interfaces for everything.** Adding `IUserService` for one concrete implementation is not useful by itself. Introduce a contract at a real client, variation, test, or integration boundary.
+8. **Missing follow-ups.** Do not stop after a class diagram; discuss scalability, likely features, extensibility, and trade-offs.
+9. **Ignoring trade-offs.** “Factory is always good” is false. Explain benefits, drawbacks, and alternatives. Interviewers respond well when you name benefits, drawbacks, and simpler alternatives—not when you treat any pattern as universally good.
+10. **Overengineering.** Factory + Builder + Strategy + Observer + Decorator for a tiny problem adds complexity without benefit. Add complexity only when requirements demand it.
+
+Critical learnings:
+
+- Requirements matter more than code.
+- Simpler design is usually better.
+- Patterns are tools, not goals.
+- Concurrency is often overlooked.
+- Good tradeoff discussion impresses interviewers.
+
+Fast revision:
+
+| Mistake | Remember |
+| --- | --- |
+| Jumping to classes | Gather requirements first |
+| Pattern-first thinking | Understand the problem first |
+| God classes | Split by cohesive reason to change |
+| Excessive inheritance | Prefer composition for variation |
+| Large if/else | Consider Strategy when the axis is open |
+| Ignoring concurrency | Think multi-user and authoritative atomicity |
+| Interfaces everywhere | Abstract only at meaningful boundaries |
+| Missing follow-ups | Discuss future changes |
+| Ignoring trade-offs | Every design has costs |
+| Overengineering | Keep the design as simple as requirements allow |
+
 ## Advantages
 
 - Produces models that communicate domain intent.
@@ -221,3 +934,10 @@ For a ticketing system, explicitly discuss concurrent seat claims. An in-memory 
 - [Related: SOLID](../SOLID/README.md)
 - [Related: UML](../UML/README.md)
 - [Related: Design Patterns](../Design-Patterns/README.md)
+
+## Provenance
+
+- **Source-derived:** “Source-derived OOP tutorial” comes from `01-core/oop.md`; “Source-derived object-modelling tutorial” from `03-problem-framework/object-modelling.md`; “Source-derived dependency-injection tutorial” from `01-core/dependency-injection.md`; “Source-derived design-decision cards” from `01-core/design-decisions.md`; and the interview walkthrough and mistake clinic from `00-revision/lld-interview-flow.md` and `00-revision/common-lld-mistakes.md`.
+- **Editorial synthesis:** The overview, section ordering, removal of exact repeated reminders, links, tables that consolidate equivalent cards, and mapping of source material into this repository's topic template.
+- **Professional correction:** Every callout explicitly labeled **Professional correction**, plus the existing guidance on invariants, client-shaped contracts, behavioral substitutability, authoritative concurrency control, weak UML aggregation semantics, and the costs of abstractions. These corrections refine source shorthand without deleting its interview-learning intent.
+- **Excluded duplicate:** No `concurrency.md` content was imported; the provided source set contains no required standalone concurrency tutorial, avoiding the mislabeled duplicate while retaining the unique concurrency checks present in the interview and mistakes sources.

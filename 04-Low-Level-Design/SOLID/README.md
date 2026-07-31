@@ -158,6 +158,148 @@ The abstraction should express checkout's needs, not mirror a vendor SDK. A Stri
 
 Patterns such as Strategy, Adapter, Factory, and Decorator can support these principles, but a pattern does not prove that a design is SOLID.
 
+### Source-derived example clinic
+
+The original tutorial teaches each principle through a deliberately small bad/good contrast. These examples are retained here alongside the fuller contract-oriented treatment above.
+
+#### SRP: unrelated reasons to change
+
+Bad:
+
+```java
+class UserService {
+    void createUser() {}
+    void sendEmail() {}
+    void generateReport() {}
+}
+```
+
+User policy, email delivery, and reporting evolve for different reasons. The tutorial separates them into:
+
+```text
+UserService
+EmailService
+ReportService
+```
+
+Amazon-style `OrderService`, `PaymentService`, and `NotificationService` provide the same real-world separation. The benefits are easier maintenance, focused tests, and smaller cohesive classes.
+
+> **Professional correction:** SRP means one cohesive reason to change, not one method or universally small classes. An application service may legitimately coordinate a use case, and invariant-preserving behavior should not be split into anemic pass-through services.
+
+#### OCP: a proven axis of variation
+
+Bad:
+
+```java
+if (type == GO) {}
+else if (type == XL) {}
+else if (type == PREMIER) {}
+```
+
+If cab types form an open, behavior-rich variation, every addition edits the same conditional and risks regression. The tutorial's Uber pricing example introduces:
+
+```text
+PricingStrategy
+ ├── GoPricing
+ ├── XLPricing
+ └── PremierPricing
+```
+
+Strategy commonly supports OCP by letting a new pricing policy implement a stable contract.
+
+> **Professional correction:** OCP is relative to a chosen, expected axis of change. It does not prohibit all modification, and a closed enum or data table can be simpler than polymorphism.
+
+#### LSP: child behavior must honor the parent contract
+
+Bad:
+
+```java
+interface PaymentGateway {
+    void pay();
+}
+
+class DummyGateway implements PaymentGateway {
+    public void pay() {
+        throw new UnsupportedOperationException();
+    }
+}
+```
+
+The child compiles but breaks the contract. Stripe, Razorpay, and PayPal should all work wherever a charge-capable `PaymentGateway` is expected.
+
+> **Professional correction:** LSP is behavioral: subtypes must preserve reasonable input, output, invariant, side-effect, and failure expectations. If a provider cannot perform an operation, segregate the capability instead of supplying an implementation that always fails.
+
+#### ISP: avoid forcing unsupported capabilities
+
+Bad:
+
+```java
+interface Worker {
+    void work();
+    void eat();
+    void sleep();
+}
+
+class Robot implements Worker {
+    // A robot cannot meaningfully eat or sleep.
+}
+```
+
+The source splits this into `Workable`, `Eatable`, and `Sleepable`. A payment-system equivalent separates `Chargeable`, `Refundable`, and `RecurringPaymentSupported`, allowing a provider to implement only what it supports. The goal is to avoid fat interfaces.
+
+> **Professional correction:** ISP is client-specific, not “make every interface tiny.” Split contracts where clients have distinct needs; do not create one interface per implementation or fragment cohesive operations indiscriminately.
+
+#### DIP: policy should not construct volatile details
+
+Bad:
+
+```java
+class PaymentService {
+    RazorpayGateway gateway = new RazorpayGateway();
+}
+```
+
+This is tightly coupled, difficult to test, and difficult to move to another provider. The source's first improvement is:
+
+```java
+class PaymentService {
+    PaymentGateway gateway;
+}
+```
+
+Spring dependency injection is a familiar wiring example: an external constructor receives a gateway implementation.
+
+> **Professional correction:** DIP is not achieved merely by naming a field with an interface. The abstraction should express the high-level policy's needs and be owned at that boundary; dependency injection is the construction technique that supplies an implementation.
+
+### Source-derived critical learnings
+
+- SRP reduces class complexity by keeping reasons to change cohesive.
+- OCP reduces repeated edits at an intentional extension seam.
+- LSP makes inheritance and interface substitution safe.
+- ISP keeps client contracts focused.
+- DIP reduces coupling between policy and volatile detail.
+- The source identifies OCP and DIP as especially common in real projects; all five remain contextual heuristics.
+
+### Source-derived fast revision
+
+| Principle | Remember |
+| --- | --- |
+| SRP | One cohesive reason to change |
+| OCP | Extend at a chosen seam without rewriting stable policy |
+| LSP | A child behaves as its parent contract promises |
+| ISP | Focused, client-specific interfaces |
+| DIP | Policy depends on stable abstractions |
+
+Most-asked checks:
+
+| Question | Answer |
+| --- | --- |
+| Huge service class violates? | Usually SRP |
+| Growing variation `if/else` violates? | Often OCP |
+| Wrong or unsupported subtype violates? | LSP |
+| Fat interface violates? | ISP |
+| High-level policy tied to a vendor violates? | DIP |
+
 ## Advantages
 
 - Localizes change and reduces regression risk.
@@ -200,3 +342,9 @@ Patterns such as Strategy, Adapter, Factory, and Decorator can support these pri
 - [Martin Fowler: Inversion of Control Containers and Dependency Injection](https://martinfowler.com/articles/injection.html)
 - [Related: Principles](../Principles/README.md)
 - [Related: Design Patterns](../Design-Patterns/README.md)
+
+## Provenance
+
+- **Source-derived:** “Source-derived example clinic,” critical learnings, fast-revision card, bad/good code, real-world examples, and short interview checks derive from `01-core/solid.md`.
+- **Editorial synthesis:** The repository topic template, expanded signals/mistakes, principle interaction section, consolidated tables, links, and removal of exact repeated definitions.
+- **Professional correction:** Every callout explicitly labeled **Professional correction**, together with the existing actor/cohesion interpretation of SRP, axis-of-change interpretation of OCP, behavioral-contract definition of LSP, client-specific definition of ISP, and policy-owned abstraction definition of DIP. These retain the tutorial examples while correcting oversimplified rules.
