@@ -1,5 +1,10 @@
 # Parking Lot Sequence Diagrams
 
+Read every Mermaid sequence from top to bottom. Actors are outside callers;
+participants are objects or services. The source flows preserve the original
+interview behavior. The hardened flows then add the lock, exact fee handling,
+payment failure, and atomic state changes needed when multiple gates race.
+
 ## Source-derived teaching flow
 
 The source builds the lifecycle in two stages. Entry delegates from the gate
@@ -64,6 +69,10 @@ payment processor.
 
 ### Vehicle entry
 
+This Mermaid sequence introduces corrected vehicle entry. One lifecycle lock
+covers pool claim, spot occupation, and ticket indexing, so two gates cannot
+both receive the same spot.
+
 ```mermaid
 sequenceDiagram
     actor Driver
@@ -91,6 +100,10 @@ sequenceDiagram
 If no compatible pool contains a spot, allocation fails without creating a ticket. The lock makes pool removal, occupancy, and ticket indexing one atomic operation.
 
 ### Payment and exit
+
+This Mermaid sequence introduces corrected payment and exit. It shows the
+success and failure branches explicitly: only success closes the ticket and
+returns the spot to availability.
 
 ```mermaid
 sequenceDiagram

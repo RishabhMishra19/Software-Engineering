@@ -1,6 +1,8 @@
 # Backend Engineering
 
-Backend systems expose capabilities, enforce business rules, protect data, and integrate infrastructure behind stable interfaces.
+Backend systems are the part of an application that users usually do not see. Think of a restaurant kitchen: the dining room accepts a request, while the kitchen checks what is allowed, coordinates work, updates records, and returns a result. Technically, a backend receives requests through an application programming interface (API), enforces business rules, protects data, and integrates infrastructure behind stable interfaces.
+
+**Prerequisites:** A client is software that requests a capability; a server provides it. Hypertext Transfer Protocol (HTTP) is the web's request-response protocol. A database stores durable application data. A framework supplies reusable structure and tools for building software. Common shorthand below includes Representational State Transfer (REST), Uniform Resource Identifier (URI), create/read/update/delete (CRUD), input/output (I/O), central processing unit (CPU), software as a service (SaaS), and artificial intelligence/machine learning (AI/ML). C# is the name of a programming language, not an acronym.
 
 ## Overview
 
@@ -19,7 +21,7 @@ Framework choice affects delivery speed, performance, scalability, team producti
 
 ## Why do we need explicit decisions?
 
-A startup validating an MVP and a regulated banking platform optimize for different outcomes. A capable framework that the team cannot operate may slow delivery more than a smaller, familiar stack. Conversely, optimizing only for initial speed can leave a growing system without consistent architecture, security, testing, or observability.
+A startup validating a minimum viable product (MVP)—the smallest product that tests an idea—and a regulated banking platform optimize for different outcomes. A capable framework that the team cannot operate may slow delivery more than a smaller, familiar stack. Conversely, optimizing only for initial speed can leave a growing system without consistent architecture, security, testing, or observability. Observability means being able to infer internal system state from outputs such as logs, metrics, and traces.
 
 Ask:
 
@@ -52,6 +54,15 @@ Choose technology
 The technology is the final decision, not the starting point.
 
 ### Cross-technology decision matrix
+
+The architecture rows use three common terms:
+
+- A **monolith** packages the application as one deployable unit.
+- A **modular monolith** is still one deployable unit, but its internal modules
+  have explicit boundaries and communicate through controlled interfaces.
+- **Microservices** split the application into independently deployed network
+  services. This can improve team autonomy and independent scaling, but it adds
+  network failures, distributed data, tracing, and deployment complexity.
 
 | Decision | Choose | When it is a strong fit | Main caution |
 | --- | --- | --- | --- |
@@ -131,18 +142,18 @@ These are **illustrative scenarios**, not verified descriptions of any company's
 
 ## Interview Questions
 
-1. Why choose Spring Boot instead of Express.js, NestJS, or FastAPI—and when would you make the opposite choice?
-2. What are Java's advantages over Node.js, and when is Node.js the stronger fit?
-3. When would you choose REST over GraphQL? What problems does GraphQL solve, and can both coexist?
-4. Why might a modular monolith be a better starting point than microservices?
-5. When should a company extract services, and what distributed-systems costs follow?
-6. Why use layered architecture, dependency injection, constructor injection, and global exception handling?
-7. Where should request, business, and integrity validation happen?
-8. What belongs in production logs, and how is logging different from monitoring?
-9. When should an API be versioned, and how should an old version be deprecated?
-10. When should work move to a background job? How do retries, dead-letter queues, and idempotency interact?
-11. How do you choose technology, evaluate trade-offs, and revise an architectural decision?
-12. What would you investigate first in a slow backend, and how do you design for scalability and maintainability?
+1. **Why choose Spring Boot instead of Express.js, NestJS, or FastAPI—and when would you make the opposite choice?** Choose Spring Boot for integrated Java security, transactions, conventions, and long-term complex systems; choose a lighter or language-specific framework when the workload, delivery needs, and team fit it better.
+2. **What are Java's advantages over Node.js, and when is Node.js the stronger fit?** Java offers static typing, mature enterprise tools, and multithreaded CPU work; Node.js is strong for rapid, input/output-heavy and real-time services with JavaScript or TypeScript teams.
+3. **When would you choose REST over GraphQL? What problems does GraphQL solve, and can both coexist?** Representational State Transfer (REST) fits resource-oriented HTTP and generic caching; GraphQL fits diverse client-selected related data. They can coexist at different boundaries.
+4. **Why might a modular monolith be a better starting point than microservices?** It preserves explicit domain boundaries without network failures, distributed data, multiple deployments, and higher operating cost.
+5. **When should a company extract services, and what distributed-systems costs follow?** Extract when independent ownership, deployment, isolation, or scaling is a demonstrated need; accept network latency, partial failure, consistency, tracing, and infrastructure costs.
+6. **Why use layered architecture, dependency injection, constructor injection, and global exception handling?** They make responsibilities, required collaborators, testing boundaries, and error contracts explicit; unnecessary layers still add ceremony.
+7. **Where should request, business, and integrity validation happen?** Validate shape at the API, business rules in the service or domain, and concurrent integrity with database constraints.
+8. **What belongs in production logs, and how is logging different from monitoring?** Log meaningful safe events with identifiers; monitoring aggregates metrics and checks into health views and alerts.
+9. **When should an API be versioned, and how should an old version be deprecated?** Version unavoidable breaking changes; publish a replacement and deadline, measure migration, communicate, and remove only under the announced policy.
+10. **When should work move to a background job? How do retries, dead-letter queues, and idempotency interact?** Move long, scheduled, or retryable work off the request path; bounded retries handle transient failure, a dead-letter queue retains exhausted work, and idempotency makes replay safe.
+11. **How do you choose technology, evaluate trade-offs, and revise an architectural decision?** Record requirements and assumptions, compare evidence and lifecycle cost, measure production behavior, and revisit when those assumptions change.
+12. **What would you investigate first in a slow backend, and how do you design for scalability and maintainability?** Trace request time across database, network, queues, serialization, and code before optimizing; use clear boundaries, bounded resources, measurement, and the simplest architecture that meets requirements.
 
 ## Related foundations
 

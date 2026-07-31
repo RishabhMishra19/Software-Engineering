@@ -1,5 +1,21 @@
 # BookMyShow Requirements
 
+## Beginner Orientation
+
+The real-world promise is “a seat shown during checkout will not be sold to
+someone else.” A customer initiates work; the payment provider reports money
+outcomes; an expiry worker cleans abandoned checkouts; an operator resolves
+mismatches. `ShowInventory` is the seat authority, a `Hold` is a temporary
+lease, and a `Booking` is the purchase attempt. Read the states as a lifecycle:
+`AVAILABLE → HELD → BOOKED`, while a booking moves from `PENDING_PAYMENT` to
+exactly one terminal result.
+
+In the happy path all selected seats are claimed in one transaction, the owner
+starts a booking, and one successful callback confirms it. Edge cases below
+exist because stale reads, simultaneous customers, retries, process crashes,
+and a payment arriving after hold expiry can otherwise oversell or duplicate a
+money outcome.
+
 ## Scope
 The bounded context begins after shows and seat layouts exist. It owns per-show availability from hold through confirmation. Catalog search, venue onboarding, recommendations, pricing rules, refunds, and notifications are integration points rather than core implementation concerns.
 

@@ -5,7 +5,7 @@ Navigation for the core system-design topics in this repository:
 - [Scalability](./Scalability/README.md) — scaling dimensions, capacity planning, replication, and partitioning.
 - [Caching](./Caching/README.md) — cache patterns, invalidation, eviction, and failure modes.
 - [Messaging](./Messaging/README.md) — queues, streams, delivery semantics, and event-driven communication.
-- [Distributed Systems](./Distributed-Systems/README.md) — architecture choices, consistency, resilience, CQRS, event sourcing, and sagas.
+- [Distributed Systems](./Distributed-Systems/README.md) — architecture choices, consistency, resilience, command/query separation, event sourcing, and sagas.
 - [Load Balancing](./Load-Balancing/README.md) — traffic distribution, health checks, and routing algorithms.
 - [Rate Limiting](./Rate-Limiting/README.md) — overload protection, fairness, and distributed enforcement.
 - [Frontend](../06-Frontend/README.md) — browser architecture, performance, state, and reliability.
@@ -35,6 +35,41 @@ Guidance:
 - Avoid solving hypothetical problems and optimize only after finding real bottlenecks.
 - Prefer maintainability and an explicit evolution path over fashionable complexity.
 - Ask what problem the pattern solves, whether it is needed now, what it costs, whether the team can operate it, and whether a simpler option exists.
+
+## Beginner foundation
+
+Use a restaurant chain as a mental model. Customers create requests, a front desk routes them, kitchens do the work, storage holds durable records, a small counter keeps frequently used items close, and a ticket rail buffers work. Adding software components can improve capacity or reliability, but every handoff adds delay and another failure case.
+
+Core terms used throughout this section:
+
+- A **distributed system** is a group of independent processes or computers that communicate over a network and appear to cooperate on one service.
+- A **node** is one participating process, virtual machine, physical machine, or device.
+- **Latency** is how long one operation takes, such as 120 milliseconds for one response. **Throughput** is how much work completes per unit of time, such as 5,000 requests per second. Improving one does not guarantee improving the other.
+- **Availability** is the proportion of time the service can successfully perform its promised work.
+- **Consistency** describes which values different reads are allowed to observe after a write. Stronger consistency usually needs more coordination; eventual consistency permits temporary disagreement but requires replicas to converge.
+- **Replication** keeps multiple copies of the same data or service. It helps reads and failure recovery but creates synchronization and failover questions.
+- A **partition** can mean either a network failure that separates nodes or a deliberate slice of data assigned to one owner. The surrounding sentence must make the meaning clear.
+- A **broker** accepts, stores, and routes messages between producers and consumers.
+- A **cache** is a faster, usually temporary copy of reusable data.
+- A **load balancer** selects a healthy service instance for each connection or request.
+- A **rate limit** is an admission rule that restricts how much work a caller may start during a period.
+
+Common abbreviations are expanded before the decision tables use them: **create, read, update, and delete (CRUD)**; **minimum viable product (MVP)**; **application programming interface (API)**; **time to live (TTL)**; **least recently used (LRU)**; **least frequently used (LFU)**; **command query responsibility segregation (CQRS)**; **atomicity, consistency, isolation, and durability (ACID)**; **two-phase commit (2PC)**; **dead-letter queue (DLQ)**; **central processing unit (CPU)**; and **software as a service (SaaS)**.
+
+### One concrete request flow
+
+```text
+Client
+  → rate limit
+  → load balancer
+  → application node
+  → cache
+      ├─ hit  → response
+      └─ miss → database → fill cache → response
+                         └→ broker → background consumers
+```
+
+Step by step, the admission rule rejects excess traffic, the balancer chooses a healthy node, the application checks for a reusable result, and a miss reaches durable storage. The application may publish follow-up work through a broker. Failures can occur at every arrow: a timeout can leave the outcome unknown, a cache can be stale, a replica can lag, or a message can be delivered twice. Production design therefore specifies deadlines, ownership, consistency, retries, idempotency, observability, and fallback behavior instead of drawing only a happy path.
 
 ## Cross-topic decision matrices
 
@@ -118,30 +153,110 @@ Guidance:
 
 ## Cross-topic interview and scenario questions
 
-Explain trade-offs and rejected alternatives, not just definitions:
+For every prompt, give a compact answer in this order: clarify the workload and correctness goal; estimate traffic, data, latency, throughput, and availability; sketch the request/data flow; identify the bottleneck and failure boundaries; choose the simplest fitting design; then state consistency, recovery, operations, cost, and rejected alternatives. Explain trade-offs rather than listing definitions:
 
-1. How would you choose among layered, clean, and hexagonal architecture?
-2. When is a modular monolith preferable to microservices, and why do startups often begin with a monolith?
-3. What are the costs of adopting microservices too early? What would you choose for five developers building a new SaaS product?
-4. When should communication be synchronous or asynchronous? Explain an event-driven flow and its disadvantages.
-5. Queue versus topic; Kafka versus RabbitMQ; and at-most-once versus at-least-once versus exactly-once?
-6. What is idempotency, why is a DLQ useful, and how do you prevent duplicate processing?
-7. API gateway versus load balancer; client-side versus server-side discovery; and how do Kubernetes Services provide discovery?
-8. When should caching be introduced? Compare cache-aside and write-through, LRU and LFU, and stampede, avalanche, and penetration.
-9. How would you cache an e-commerce product catalog?
-10. Retry versus circuit breaker; why use limited exponential backoff; and how do timeout, bulkhead, fallback, and circuit states interact?
-11. CQRS versus CRUD; does CQRS require event sourcing; why are events immutable; and when should event sourcing be avoided?
-12. Saga versus ACID and 2PC; choreography versus orchestration; and what is a compensating transaction?
-13. For 100 million daily reads, what patterns would you investigate?
-14. How would you handle an intermittently timing-out payment gateway?
-15. What would provide complete financial audit history?
-16. How would order, payment, and inventory complete one business transaction?
-17. How would you investigate a slow dashboard or database CPU consistently above 90%?
-18. How should frequently changing service instances find one another?
-19. How do you stop one unavailable service from causing cascading failures?
-20. What supports zero-downtime deployment?
-21. Does a 50:1 read/write ratio justify CQRS? What other evidence is needed?
-22. Choose and justify architectures for a bank and a startup MVP, messaging for analytics, caching for profiles, resilience for a third-party payment provider, and distributed transactions for checkout.
+1. **How would you choose among layered, clean, and hexagonal architecture?**
+   **Key points:** layered architecture organizes common application concerns;
+   clean architecture protects domain rules from frameworks; hexagonal
+   architecture makes external integrations replaceable through ports. Choose
+   the simplest boundary that matches the expected changes.
+2. **When is a modular monolith preferable to microservices, and why do
+   startups often begin with a monolith?** **Key points:** use one deployment
+   while a small team and domain are still changing. Add explicit modules so
+   boundaries can be tested and extracted later if independent ownership,
+   scaling, or deployment becomes necessary.
+3. **What are the costs of adopting microservices too early? What would you
+   choose for five developers building a new SaaS product?** **Key points:**
+   microservices add network failures, distributed data, tracing, deployment,
+   and on-call work. Five developers usually benefit from a modular monolith
+   unless a measured constraint requires separate services.
+4. **When should communication be synchronous or asynchronous?**
+   **Key points:** use synchronous calls when the caller needs an immediate
+   answer. Use asynchronous messaging when work can finish later or producers
+   and consumers should be decoupled. Events add delay, duplicates, ordering
+   questions, and harder debugging.
+5. **Queue versus topic; Kafka versus RabbitMQ; and delivery guarantees?**
+   **Key points:** a queue distributes work among consumers; a topic broadcasts
+   to subscriptions. Kafka emphasizes retained, replayable logs; RabbitMQ
+   emphasizes flexible routing and task delivery. At-most-once may lose work;
+   at-least-once may duplicate it; end-to-end exactly-once effects require
+   transactional or idempotent handling.
+6. **What are idempotency and a dead-letter queue (DLQ)?**
+   **Key points:** idempotency makes repeating one logical request safe. A DLQ
+   isolates messages that repeatedly fail. Use stable operation IDs, durable
+   deduplication, and atomic side-effect recording to prevent duplicate effects.
+7. **API gateway, load balancer, and service discovery: how do they differ?**
+   **Key points:** a gateway applies API policy, a load balancer distributes
+   traffic, and discovery locates live instances. Kubernetes Services normally
+   combine Domain Name System (DNS) names with virtual routing to healthy pods.
+8. **When should caching be introduced, and how do its choices differ?**
+   **Key points:** add it after measuring repeated expensive reads. Cache-aside
+   fills on a miss; write-through updates on writes. Least recently used (LRU)
+   and least frequently used (LFU) evict different access patterns. Prevent
+   stampedes, synchronized-expiry avalanches, and repeated absent-key
+   penetration.
+9. **How would you cache an e-commerce product catalog?** **Key points:** cache
+   product views by tenant, locale, currency, and version; invalidate after
+   catalog changes; jitter expiry times; protect hot keys; and keep checkout
+   price and inventory validation authoritative.
+10. **How do retry, timeout, circuit breaker, bulkhead, and fallback interact?**
+    **Key points:** timeout bounds waiting, retry handles transient failures,
+    exponential backoff spreads retries, a circuit breaker stops repeated calls,
+    a bulkhead limits affected resources, and a fallback provides reduced
+    service. Every retry needs a limit and idempotency analysis.
+11. **CQRS versus CRUD; does CQRS require event sourcing?** **Key points:**
+    create/read/update/delete (CRUD) uses one model for ordinary operations.
+    Command Query Responsibility Segregation (CQRS) separates write and read
+    models when their needs differ. It does not require event sourcing. Avoid
+    event sourcing when replay, audit, and temporal reconstruction do not
+    justify its schema and operational complexity.
+12. **Saga versus ACID and two-phase commit (2PC)?** **Key points:** one
+    database transaction with atomicity, consistency, isolation, and durability
+    (ACID) is simplest. 2PC coordinates participants but can reduce
+    availability. A saga uses local commits and compensating business actions;
+    orchestration centralizes the flow, while choreography reacts to events.
+13. **For 100 million daily reads, what would you investigate?** **Key points:**
+    calculate peak requests per second, inspect query plans, add suitable
+    indexes, cache repeated reads, use replicas when staleness is acceptable,
+    paginate results, precompute expensive views, and load-test before sharding.
+14. **How would you handle an intermittently timing-out payment gateway?**
+    **Key points:** set a deadline, use an idempotency key, retry only safe
+    transient failures with bounded backoff, open a circuit after repeated
+    failures, persist an unknown state, and reconcile with provider records.
+15. **What provides complete financial audit history?** **Key points:** keep an
+    immutable double-entry ledger or append-only event history, stable IDs,
+    actor and timestamp metadata, corrections as new entries, access controls,
+    retention, reconciliation, and tested backups.
+16. **How can order, payment, and inventory complete one business
+    transaction?** **Key points:** prefer one ACID owner when possible.
+    Otherwise use a saga: reserve inventory, authorize payment, confirm the
+    order, and compensate completed steps when a later step fails.
+17. **How would you investigate a slow dashboard or database CPU above 90%?**
+    **Key points:** measure end-to-end latency, trace requests, inspect slow
+    queries and execution plans, check connection pools and lock waits, identify
+    traffic or deployment changes, then optimize the measured bottleneck.
+18. **How should changing service instances find one another?** **Key points:**
+    use a service registry or platform DNS, health checks, and client-side or
+    server-side load balancing. Remove unhealthy instances quickly and avoid
+    hard-coded addresses.
+19. **How do you stop one unavailable service from causing cascading
+    failures?** **Key points:** use deadlines, bounded retries, circuit
+    breakers, bulkheads, backpressure, load shedding, queues where appropriate,
+    and graceful degradation backed by useful observability.
+20. **What supports zero-downtime deployment?** **Key points:** keep API and
+    database changes backward compatible, use readiness checks and gradual
+    rollout, drain in-flight work, monitor service-level objectives, and retain
+    a tested rollback or roll-forward path.
+21. **Does a 50:1 read/write ratio justify CQRS?** **Key points:** not by
+    itself. Examine whether read and write models need different schemas,
+    scaling, latency, security, ownership, or release cycles, and whether the
+    consistency and operational costs are acceptable.
+22. **How would choices differ across common scenarios?** **Key points:** a
+    bank prioritizes correctness, audit, and controlled change; a startup
+    minimum viable product usually prioritizes a simple modular deployment.
+    Analytics often fits retained event streams, profile caching needs explicit
+    freshness, payment dependencies need resilience and reconciliation, and
+    checkout needs an ACID boundary or carefully designed saga.
 
 ## Professional correction
 

@@ -4,9 +4,32 @@
 
 A distributed system coordinates independent processes over unreliable networks. It gains independent scaling, deployment, and fault isolation, but must handle partial failure, concurrency, latency, and consistency explicitly. Start with the simplest architecture that meets present requirements; distribution is a trade, not an automatic upgrade.
 
+Think of several restaurant branches fulfilling one brand's orders. Each branch can keep working or fail independently, travel between branches takes time, and two branches may briefly hold different inventory counts. Coordination can increase total capacity and geographic reach, but it cannot make distance or partial failure disappear.
+
 ## Why do we need it?
 
 Distribution is justified when one deployable unit or datastore cannot meet availability, geographic, scaling, data-sovereignty, or team-autonomy needs. A modular monolith often preserves clear domain boundaries with far less operational cost and is a sound evolution point before microservices.
+
+## Beginner vocabulary
+
+- A **node** is one participating process, machine, or device. A remote call crosses a network; unlike a local function call, its request, response, or both can be lost or delayed.
+- **Latency** is the duration of one operation. **Throughput** is completed work per unit of time. A system can process many requests overall while some individual requests remain slow.
+- **Availability** is whether the system can perform its promised work when requested.
+- **Consistency** defines which values operations may observe after a write. **Strong consistency** makes operations behave as if there were one current copy; **eventual consistency** permits temporary disagreement but requires copies to converge if updates stop.
+- **Replication** keeps copies of data or services on multiple nodes. It helps read scale and recovery, but replicas can lag and failover can be ambiguous.
+- A **network partition** separates nodes that are still running but cannot communicate. **Data partitioning**, also called sharding, deliberately divides records among owners.
+- A **broker** stores and routes messages. A **cache** stores a faster temporary copy. A **load balancer** selects a healthy service instance. A **rate limit** restricts admitted work over time.
+
+Abbreviations used below are: **create, read, update, and delete (CRUD)**; **command query responsibility segregation (CQRS)**; **atomicity, consistency, isolation, and durability (ACID)**; **two-phase commit (2PC)**; **application programming interface (API)**; **Domain Name System (DNS)**; **Transport Layer Security (TLS)**; **representational state transfer (REST)**; **command-line interface (CLI)**; **user interface (UI)**; **minimum viable product (MVP)**; **customer relationship management (CRM)**; **enterprise resource planning (ERP)**; **human resources (HR)**; **human resource management system (HRMS)**; **learning management system (LMS)**; **software as a service (SaaS)**; **short message service (SMS)**; **uniform resource locator (URL)**; **site reliability engineering (SRE)**; and **Amazon Web Services (AWS)**.
+
+## Mental model map
+
+- **Layered architecture** resembles an office with a reception desk, specialists, and records room; requests move through assigned responsibilities. **Clean architecture** protects the business rulebook at the center from tools around it. **Hexagonal architecture** resembles a universal socket whose adapters connect replaceable external tools.
+- A **monolith** is one restaurant under one roof. A **modular monolith** adds enforced kitchen stations while retaining one building. **Microservices** are separately operated branches that must coordinate over roads and phones.
+- **Synchronous communication** is a live phone call whose caller waits. **Asynchronous communication** is leaving a tracked ticket. **Event-driven architecture** is a bulletin announcing a fact so several teams can react.
+- An **API gateway** is the public reception desk. **Service discovery** is the current staff directory. A **load balancer** is the dispatcher choosing one listed worker.
+- A **timeout** is a stopwatch, a **retry** is another bounded attempt, a **circuit breaker** is an electrical fuse that stops repeated harm, a **bulkhead** is a ship compartment that contains flooding, and a **fallback** is an emergency reduced menu.
+- **CQRS** resembles separate order-entry and read-only display counters. **Event sourcing** resembles a bank ledger whose entries, not a rewritten balance, are the record. A **saga** resembles a multi-company trip booking whose reservations need explicit cancellations when a later step fails.
 
 ## How does it work?
 
@@ -41,6 +64,17 @@ Set end-to-end deadlines and per-hop timeouts. Retry only transient, idempotent 
 - Gateway, registry, or orchestrator becomes a bottleneck: run redundantly and keep responsibilities narrow.
 - Common mistakes include premature microservices, chatty synchronous call graphs, shared databases with unclear ownership, assuming the network is reliable, and claiming “exactly once” without defining the boundary.
 
+**Concrete checkout request and data flow**
+
+1. A client sends `Place order` through a gateway and load balancer to an order node.
+2. The order node validates the request, writes a pending order in its owned database, and atomically records an outbox event.
+3. A relay publishes the event to a broker. Inventory and payment nodes consume it and commit their own local transactions.
+4. An orchestrator records each completed step. The client reads workflow status from a query model, which may lag briefly.
+5. If payment times out, the outcome is unknown rather than automatically failed. The system queries by idempotency key before retrying.
+6. If payment is declined, compensating commands release inventory and cancel the order. Reconciliation finds workflows that remain stuck.
+
+This flow exists because one database transaction cannot safely cover independently owned services without extra coordination. Its benefits are ownership and independent scaling; its costs are temporary inconsistency, duplicate messages, more operational state, and compensation for failures.
+
 ## Advantages
 
 - Independent scaling, deployment, and technology choices where justified.
@@ -64,10 +98,15 @@ Set end-to-end deadlines and per-hop timeouts. Retry only transient, idempotent 
 ## Interview Questions
 
 1. Monolith, modular monolith, or microservices: what evidence changes your choice?
+   **Answer guidance:** begin with team and domain boundaries, deployment cadence, scaling asymmetry, and availability needs; explain why a simpler deployable unit is or is not enough.
 2. How do clean and hexagonal architecture differ from traditional layering?
+   **Answer guidance:** layering organizes responsibilities, clean architecture constrains dependency direction, and hexagonal architecture makes external interactions explicit ports and adapters; discuss useful boundaries versus boilerplate.
 3. Synchronous versus asynchronous communication: where does each belong?
+   **Answer guidance:** use synchronous calls for immediate decisions and asynchronous messages for deferred, bursty, or fan-out work; then cover timeout, duplicate, ordering, and user-feedback behavior.
 4. CQRS versus event sourcing, and saga versus ACID/2PC?
+   **Answer guidance:** separate model choice from persistence choice, then compare one-owner transactions, coordinated commits, and compensating workflows by consistency and availability needs.
 5. How do timeout, retry, circuit breaker, bulkhead, and fallback interact?
+   **Answer guidance:** start with an end-to-end deadline, retry only safe transient failures, fail fast during repeated failure, isolate resources, and define an honest degraded result.
 6. **Interview tip:** explain the requirement, failure model, consistency boundary, operational cost, alternatives, and why the simplest option is insufficient.
 
 ## References
@@ -427,7 +466,45 @@ Compensation is a new business operation that restores a valid state, not necess
 
 ## Expanded interview questions
 
-In addition to the questions above, be prepared to explain: layer responsibilities and business-logic placement; the clean dependency rule; ports and adapters; why modular monoliths are popular; whether microservices are an architecture style or deployment strategy; event schema versioning and duplicate handling; gateway versus reverse proxy; discovery without a gateway; retries without timeouts; circuit threshold configuration; CQRS with one database; snapshots and event stores; and saga without event sourcing.
+1. **Where should business logic live in a layered design?** Keep domain rules
+   in the domain or application layer. Transport, database, and framework
+   layers translate or persist data but should not become the only owners of
+   business rules.
+2. **What is the clean architecture dependency rule?** Source-code
+   dependencies point inward toward stable business policy. Inner policy does
+   not import web frameworks, databases, or vendor clients.
+3. **What are ports and adapters?** A port is an application-owned interface
+   for an external capability. An adapter implements that port for one database,
+   message broker, or vendor.
+4. **Why are modular monoliths popular?** They provide one simple deployment
+   while still enforcing domain boundaries. Teams can delay distributed-system
+   cost until independent deployment or scaling is justified.
+5. **Are microservices an architecture style or deployment strategy?** They
+   involve both. The design separates business capabilities and data ownership;
+   the deployment runs those capabilities as independent network services.
+6. **How do you version event schemas and handle duplicates?** Make changes
+   backward compatible, include a schema version, tolerate old fields, and use
+   stable event or operation IDs for idempotent processing.
+7. **How does an API gateway differ from a reverse proxy?** Both can forward
+   traffic. A gateway also applies API-level policy such as authentication,
+   quotas, aggregation, and protocol translation.
+8. **Can services use discovery without a gateway?** Yes. A client, sidecar,
+   platform service, or load balancer can resolve a service name and choose a
+   healthy instance directly.
+9. **Why are retries unsafe without timeouts?** A call can wait indefinitely,
+   consuming resources before a retry policy can act. Set one end-to-end
+   deadline and ensure each attempt fits inside it.
+10. **How do you configure a circuit-breaker threshold?** Use measured error
+    rate, latency, traffic volume, and recovery behavior. Require a minimum
+    sample size, open for a bounded period, then allow limited half-open probes.
+11. **Can CQRS use one database?** Yes. Separate command and query models can
+    share one database when independent storage or scaling is unnecessary.
+12. **What are event-store snapshots?** A snapshot stores derived state at a
+    known event position so recovery replays only later events. It is an
+    optimization, not a replacement for the event log.
+13. **Can a saga work without event sourcing?** Yes. A saga coordinates local
+    transactions and compensations; each service may store ordinary current
+    state rather than an event-sourced history.
 
 ## Professional correction
 

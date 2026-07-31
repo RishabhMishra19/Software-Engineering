@@ -1,8 +1,32 @@
 # Low-Level Design Principles
 
+## Beginner vocabulary
+
+**Everyday mental model:** think of a program as a small organization. An **object** is one worker or tool in the running organization. Its **state** is what it currently knows; its **behavior** is what it can do. A **class** is the job description or blueprint from which similar objects are made. An **interface** is a promise such as “can take a payment,” without prescribing the worker or tool that fulfills it. A **dependency** is a collaborator needed to complete a job. A **design pattern** is a named arrangement that has solved a recurring collaboration problem before. **Unified Modeling Language (UML)** is a standard family of diagrams for showing these parts and their interactions.
+
+Two quality words recur throughout this guide. **Coupling** means how strongly one part relies on another part's details; lower, explicit coupling usually makes replacement easier. **Cohesion** means how closely the responsibilities inside one part belong together; high cohesion makes that part easier to understand. Neither is an absolute score: a checkout must depend on something that charges money, and related checkout rules may belong together.
+
+- An **actor** is a person, role, or external system that asks the software to
+  achieve a goal. In responsibility discussions, it can also mean the
+  stakeholder whose needs cause a module to change.
+- An **entity** is a domain object with a continuing identity, such as one
+  customer, booking, or invoice. Its data may change while it remains the same
+  conceptual thing.
+- **Concurrency** means actions overlap in time. Two booking requests can both
+  observe one seat as available unless the authoritative data store accepts
+  only one update.
+
+- **Problem:** unclear ownership allows invalid data, duplicated rules, and changes that spread.
+- **Internal mechanics:** modelling places state and its protective behavior together, exposes useful operations through interfaces, and supplies dependencies explicitly.
+- **Concrete example:** in a booking system, a `Booking` object can reject an invalid cancellation while an application service coordinates payment and storage.
+- **Edge cases:** concurrent seat claims, retries, partially completed work, and objects constructed without required collaborators.
+- **Trade-off:** stronger boundaries improve safety and testing but add more named parts and connections to learn.
+
 ## Overview
 
-Low-level design turns requirements into objects, responsibilities, relationships, interfaces, and interactions that can evolve safely. Start with the domain and its invariants, then introduce abstractions or [design patterns](../Design-Patterns/README.md) only for observed variation or complexity. Good design favors high cohesion, deliberate coupling, explicit ownership, and understandable trade-offs over a large class diagram.
+Low-level design turns requirements into objects, responsibilities, relationships, interfaces, and interactions that can evolve safely. It answers practical questions: Which object owns a rule? Which dependencies may change? What must happen when an operation fails?
+
+Start with the domain and its **invariants**—rules that must always remain true. Introduce abstractions or [design patterns](../Design-Patterns/README.md) only for observed variation or complexity. Good design favors closely related responsibilities (**high cohesion**), intentional dependencies (**deliberate coupling**), explicit ownership, and understandable trade-offs over a large class diagram.
 
 ## Why do we need it?
 
@@ -27,6 +51,8 @@ An object combines state with behavior that protects its invariants. A class def
 - **Encapsulation:** keep representation and state transitions behind operations that preserve invariants. `private` fields alone are insufficient if setters permit invalid state.
 - **Polymorphism:** invoke a shared contract while different implementations provide behavior. Subtypes must remain behaviorally substitutable.
 - **Inheritance:** specialize a genuine “is-a” relationship under a stable contract. It couples subclasses to a base class and is not a default reuse mechanism.
+
+The following account protects its balance by allowing changes only through a validated operation:
 
 ```java
 final class Account {
@@ -86,11 +112,11 @@ Choose inheritance when:
 
 Useful questions:
 
-- Do the methods protect the same invariant or serve the same actor?
-- Does a small change force edits or tests across unrelated modules?
-- Does the consumer depend on a stable capability or on provider details?
-- Is temporal coupling hidden—must methods be called in an undocumented order?
-- Is data coupling excessive—does a method receive a large object to use one field?
+- **Do the methods protect the same invariant or serve the same actor?** If yes, they are likely cohesive; if not, the module may mix responsibilities.
+- **Does a small change force edits or tests across unrelated modules?** If yes, coupling or misplaced responsibility is spreading the change.
+- **Does the consumer depend on a stable capability or on provider details?** Prefer the stable capability when providers vary; use the concrete dependency when it is already the clearest stable choice.
+- **Is temporal coupling hidden—must methods be called in an undocumented order?** If yes, expose a single valid operation, encode states, or document and validate the sequence.
+- **Is data coupling excessive—does a method receive a large object to use one field?** If yes, pass a focused value unless the whole object is the meaningful domain input.
 
 Low coupling does not mean no dependencies. A clear direct dependency is often better than a generic event bus or service locator that hides the relationship.
 
@@ -104,7 +130,9 @@ Design contracts around client needs. `ChargePort` and `RefundPort` may be safer
 
 ### Dependency inversion, injection, and IoC
 
-A dependency is any collaborator a component needs. **Dependency inversion** says policy should rely on stable abstractions rather than volatile details. **Dependency injection** supplies collaborators from outside instead of constructing them inside business logic. **Inversion of control** is broader: a framework or external mechanism controls part of program flow or construction.
+A dependency is any collaborator a component needs. **Dependency inversion** says policy should rely on stable abstractions rather than volatile details. **Dependency injection (DI)** supplies collaborators from outside instead of constructing them inside business logic. **Inversion of control (IoC)** is broader: a framework or external mechanism controls part of program flow or construction.
+
+In this example, `CheckoutService` declares what it needs, while external construction code chooses the payment implementation:
 
 ```java
 final class CheckoutService {
@@ -438,7 +466,7 @@ Critical learnings and answers:
 
 ### Source-derived dependency-injection tutorial
 
-A dependency is a collaborator a class needs:
+A dependency is a collaborator a class needs. The simplest form is a field that references another object:
 
 ```java
 class Car {
@@ -773,6 +801,8 @@ Follow Ups
    Should seats be locked?
    ```
 
+   A possible scoped answer is: yes, one booking may contain several seats; yes, payment or storage can fail after a temporary hold; and yes, seats need an expiring hold enforced atomically by the authoritative store. These are assumptions to confirm with the interviewer, not universal requirements.
+
 2. **Identify candidate entities.** For a parking lot, nouns suggest `ParkingLot`, `ParkingFloor`, `ParkingSpot`, `Vehicle`, and `Ticket`. Treat “nouns → candidate entities” as a discovery aid, not an automatic mapping.
 3. **Identify relationships.** Ask “Who owns whom?” and “Who talks to whom?”
 
@@ -913,15 +943,15 @@ Fast revision:
 
 ## Interview Questions
 
-1. How do you move from requirements to candidate objects without creating a class for every noun?
-2. What is the difference between association, shared aggregation, and composition?
-3. When is inheritance preferable to composition?
-4. How do high cohesion and low coupling influence responsibility assignment?
-5. When should behavior live on an entity versus a domain or application service?
-6. Compare interface and abstract class semantics in modern Java.
-7. Explain DI, DIP, and IoC with one example.
-8. How would you prevent two users from booking the same seat?
-9. Which design patterns would you avoid until a concrete variation appears?
+1. **How do you move from requirements to candidate objects without creating a class for every noun?** Extract nouns as candidates, then retain only concepts with domain identity, value, behavior, persistence, or an important role. Validate them by walking concrete use cases and invariants.
+2. **What is the difference between association, shared aggregation, and composition?** Association is a general structural relationship. Shared aggregation is a weak whole–part relationship with independent parts. Composition is exclusive ownership in which a part normally follows the whole's lifecycle.
+3. **When is inheritance preferable to composition?** Use inheritance for a stable, genuine subtype whose behavior preserves the base contract. Prefer composition when behavior varies independently, at runtime, or across several dimensions.
+4. **How do high cohesion and low coupling influence responsibility assignment?** Keep behavior that serves the same invariant or actor together, and make dependencies explicit at stable boundaries. Do not remove useful direct dependencies merely to reduce a coupling count.
+5. **When should behavior live on an entity versus a domain or application service?** Put invariant-preserving behavior on the owning entity or aggregate. Use a domain service when behavior belongs to no entity naturally, and an application service to orchestrate persistence, external systems, and a use case.
+6. **Compare interface and abstract class semantics in modern Java.** An interface defines a capability and supports multiple implemented roles; it has no per-instance mutable state. An abstract class can provide constructors, instance state, shared implementation, and protected hooks, but a class can extend only one.
+7. **Explain DI, DIP, and IoC with one example.** DIP makes checkout policy depend on a client-shaped `PaymentPort`; DI passes a Stripe adapter into the constructor; IoC describes the external code or container controlling that construction.
+8. **How would you prevent two users from booking the same seat?** Enforce the invariant atomically in the authoritative store with a conditional update, uniqueness constraint, lock, or version check. Define hold expiry, idempotency, and payment-failure compensation.
+9. **Which design patterns would you avoid until a concrete variation appears?** Avoid all speculative patterns. In particular, do not add Strategy, Factory, Observer, State, or an interface hierarchy until a real algorithm, creation, notification, lifecycle, or integration pressure exists.
 10. **Interview tip:** narrate assumptions and invariants, walk one end-to-end scenario, then justify each abstraction with a requirement and a trade-off.
 
 ## References

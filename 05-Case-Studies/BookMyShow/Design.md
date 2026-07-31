@@ -1,5 +1,19 @@
 # BookMyShow Design
 
+## Beginner Design Map
+
+The difficult part is not listing seats; it is making the final write truthful
+when thousands of customers see the same popular show. Catalog serves discovery,
+Inventory is the single authority for seat state, Booking owns the customer
+purchase lifecycle, the Payment adapter translates provider results, and the
+expiry worker cleans abandoned holds. Each exists because it owns a different
+kind of change and failure.
+
+Follow the normal path as Catalog read → Inventory hold → pending Booking →
+Payment callback → Inventory confirmation. The later sections explain why
+locks or versions serialize seat races, why durable state outranks cache, why a
+late payment needs reconciliation, and what is traded for scale.
+
 ## Component Boundaries
 The Catalog service serves cinemas, shows, and denormalized seat maps. The Inventory service is the consistency boundary for show-seat state and holds. The Booking service owns the customer-facing lifecycle. A Payment adapter normalizes provider callbacks. An expiry worker and transactional outbox handle asynchronous cleanup and publication.
 

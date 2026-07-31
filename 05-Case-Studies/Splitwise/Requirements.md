@@ -1,5 +1,18 @@
 # Splitwise Requirements
 
+## Beginner Orientation
+
+The system turns “Alice paid 10.00 for three people” into facts that can be
+audited. A **member** submits an expense; the **ledger** stores it; a **payer**
+receives credit; **participants** receive debits; and a **settlement** is only a
+suggested transfer. Positive balance means the group owes that person, negative
+means the person owes the group, and all balances together must equal zero.
+
+Normally the ledger validates one exact monetary allocation, stores postings,
+and updates balances atomically. The requirements then address awkward cases:
+remainder cents, duplicate retries, conflicting IDs, and simultaneous writes.
+Those are consistency rules, not optional optimizations.
+
 ## Scope
 The system manages expenses and balances inside a group using one configured currency. Authentication, social discovery, bank transfer execution, foreign exchange, and receipt OCR are outside the core model.
 

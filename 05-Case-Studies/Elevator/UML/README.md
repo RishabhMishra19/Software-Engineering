@@ -1,5 +1,13 @@
 # Class Diagram
 
+A request is stored in `Elevator`, `step()` changes the car by at most one floor,
+and `Snapshot` reports the result. `Elevator` exists as the safety boundary;
+`Snapshot` prevents outside mutation; the three enums model independent
+direction, movement, and door states.
+
+The following Mermaid class diagram shows structure, not timing. Read `..>` as
+“creates or uses” and `-->` as “holds or refers to.”
+
 ```mermaid
 classDiagram
     class Elevator {

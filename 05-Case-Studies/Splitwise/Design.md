@@ -1,5 +1,19 @@
 # Splitwise Design
 
+## Beginner Design Map
+
+The core problem is preserving an exact, explainable history while answering
+balances quickly. `Money` prevents rounding surprises; `Split` turns user intent
+into shares; `Expense` preserves the accepted fact; `ExpenseLedger` applies it
+once and maintains a projection; `Settlement` derives advice without rewriting
+history. These responsibilities keep money arithmetic, allocation policy,
+audit, and read optimization separate.
+
+The happy path normalizes one command, validates zero-sum postings, commits the
+journal and projection together, and returns the stored result. Version checks
+handle concurrent writers; immutable postings repair a damaged projection; and
+greedy settlement trades global optimality for simple deterministic speed.
+
 ## Domain Model
 `Money` enforces the ledger currency's scale and supplies closed arithmetic. A `Split` converts intent into immutable participant shares. `Expense` is the normalized journal fact. `ExpenseLedger` owns idempotency and projects journal entries into per-user net balances. `Settlement` is a derived recommendation, not persisted debt.
 

@@ -2,7 +2,9 @@
 
 ## Overview
 
-Spring is a Java application ecosystem centered on dependency injection, modular configuration, data access, transactions, web development, security, messaging, and operations. Spring Boot adds opinionated defaults, auto-configuration, dependency management, embedded servers, and production features.
+Spring is a Java application ecosystem that acts like a workshop manager: instead of every component finding and building its own tools, a shared container creates components, connects their required collaborators, and manages their lifetimes. Technically, Spring centers on dependency injection, modular configuration, data access, transactions, web development, security, messaging, and operations. Spring Boot adds opinionated defaults, auto-configuration, dependency management, embedded servers, and production features.
+
+**Prerequisites:** Java is a programming language and runtime platform. A class describes objects; an object contains state and behavior. A dependency is another object a component needs. A web request commonly arrives through Hypertext Transfer Protocol (HTTP), and an application programming interface (API) defines how software communicates. A database preserves durable state. Create, read, update, and delete (CRUD) names four common data operations. Input/output (I/O) means communication with external resources; a central processing unit (CPU) executes instructions. No prior Spring knowledge is assumed.
 
 ## Why do we need it?
 
@@ -16,7 +18,7 @@ Choose Spring when domain logic, transactions, security, long-term maintenance, 
 
 The application context discovers or registers bean definitions, constructs objects, resolves dependencies, and manages lifecycle. Prefer constructor injection: required dependencies remain explicit, instances can be immutable, and unit tests need no container. Setter injection suits optional dependencies; field injection hides dependencies and is best avoided.
 
-Dependency injection is one implementation of inversion of control and does not inherently require a framework.
+Dependency injection (DI) is one implementation of inversion of control (IoC), the broader idea that creation and lifecycle control move outside the object. DI does not inherently require a framework.
 
 ### Auto-configuration
 
@@ -30,6 +32,8 @@ A conventional flow is controller → application/service → repository. Contro
 
 Spring Data integrates repositories; Spring's transaction abstraction defines atomic boundaries. Request-shape validation belongs at the transport boundary, domain rules in services or domain objects, and final integrity constraints in the [database](../../01-Computer-Science/Database/README.md).
 
+For example, an order request reaches a controller, which checks that required fields have valid shapes. An order service checks stock and business rules inside a short transaction. A repository writes the order, while database constraints remain the final protection against concurrent invalid data. Spring commits only if the operation succeeds; a configured failure causes rollback.
+
 ### Errors and operations
 
 Centralized exception handling should map known failures to stable API errors and avoid exposing stack traces. Log an exception once at the handling boundary with structured context. Actuator exposes health, metrics, and management endpoints; secure and separate sensitive endpoints.
@@ -42,6 +46,14 @@ Long-running work can use schedulers, queues, or workflow engines. Production jo
 - Reflection, proxies, scanning, and an embedded server add startup and memory overhead.
 - Framework abstractions improve consistency but can hide transaction, proxy, or lifecycle behavior.
 - A modular monolith usually retains simpler deployment and debugging than premature microservices; extract services when independent ownership, deployment, or scaling is required.
+
+### Edge cases and production behavior
+
+- Spring often applies transactions, security, and caching through proxy objects. A method calling another advised method on the same object can bypass that proxy.
+- A transaction annotation is not a distributed rollback mechanism: an email, message, or remote payment does not automatically undo when the database rolls back.
+- A singleton bean is shared by concurrent requests, so mutable request-specific fields inside it can race.
+- Readiness and liveness have different meanings. Readiness controls whether traffic should arrive; liveness asks whether the process should be restarted.
+- Production teams inspect startup time, heap memory, garbage collection, thread pools, connection pools, request latency, error rate, and dependency saturation before changing framework settings.
 
 ## Advantages
 
@@ -106,7 +118,7 @@ Choose Spring Boot for long-lived products, complex business rules, security and
 | Spring Boot | Enterprise rules, integrated security and transactions, long-term ownership | Small prototypes and startup-sensitive deployments |
 | Express.js | Lightweight APIs and rapid flexible delivery | Large systems need conventions and integrations |
 | NestJS | Structured TypeScript backends | Requires TypeScript and adds framework abstraction |
-| FastAPI | Python, AI/ML, data-centric APIs | Different ecosystem from enterprise Java |
+| FastAPI | Python, artificial intelligence and machine learning (AI/ML), data-centric APIs | Different ecosystem from enterprise Java |
 | Quarkus | Cloud-native Java and fast startup | Less direct fit for Spring-invested teams |
 
 Spring Boot is not inherently slow, enterprise-only, or automatically scalable. Database access, network latency, application logic, caching, data design, and infrastructure usually matter more than framework overhead. It can fit a startup with Java expertise, but scale still requires sound architecture and operations.
@@ -216,7 +228,7 @@ An illustrative error contract:
 }
 ```
 
-The exact schema should use stable machine-readable error codes and field details where useful. Exceptions are not normal control flow, and they should usually propagate to the centralized handler when the current layer cannot recover.
+JavaScript Object Notation (JSON) is the text data format shown above. The exact schema should use stable machine-readable error codes and field details where useful. Exceptions are not normal control flow, and they should usually propagate to the centralized handler when the current layer cannot recover.
 
 ## Logging strategy
 
@@ -230,7 +242,7 @@ Logging records significant application events for diagnosis, production visibil
 | WARN | Unexpected but recoverable conditions | Retry, deprecated API, high latency, optional configuration absent |
 | ERROR | Failure requiring attention | Database outage, external failure, unhandled exception |
 
-Use structured fields such as request ID, trace/correlation ID, safe user ID, order ID, and service name. Never log passwords, JWTs, API keys, payment-card data, session identifiers, or unnecessary personal information; mask or omit sensitive values.
+Use structured fields such as request identifier (ID), trace or correlation ID, safe user ID, order ID, and service name. Never log passwords, JSON Web Tokens (JWTs), API keys, payment-card data, session identifiers, or unnecessary personal information; mask or omit sensitive values.
 
 Logging does not replace monitoring. Logs record events, while metrics and alerts track latency, traffic, errors, saturation, CPU, memory, availability, and queue health. More logs are not automatically better, DEBUG is normally inappropriate as a blanket production level, and an exception should not be logged independently by every layer through which it propagates.
 
@@ -240,7 +252,7 @@ Background jobs execute outside the request-response cycle so the API can respon
 
 ### Appropriate uses
 
-- Email, SMS, and notifications.
+- Email, Short Message Service (SMS), and notifications.
 - Uploaded-file, image, or video processing.
 - Reports, imports, exports, and large data synchronization.
 - Scheduled cleanup, invoice generation, and cache refresh.
@@ -253,7 +265,7 @@ Keep work synchronous when the caller cannot proceed without the result or the o
 - **Fire-and-forget:** enqueue a welcome email, notification, or audit event and return.
 - **Scheduled:** run daily reports, cleanup, invoices, or refreshes at defined times.
 - **Retry:** retry transient network, external API, or database failures with bounded exponential backoff and jitter.
-- **Batch:** process CSV imports, millions of records, or bulk campaigns in controlled chunks.
+- **Batch:** process comma-separated values (CSV) imports, millions of records, or bulk campaigns in controlled chunks.
 - **Workflow:** persist long-running multi-step business state, timers, compensation, and human interaction.
 
 | Technology | Typical fit |
@@ -276,7 +288,7 @@ Production jobs require durable submission where loss is unacceptable, idempoten
 4. **How does auto-configuration work?** Conditional configuration reacts to the classpath, properties, and existing beans.
 5. **Where should transactions begin?** Around cohesive application operations that must succeed or fail atomically.
 6. **Why can `@Transactional` self-invocation fail?** A call within the same object may bypass the proxy that applies transaction advice.
-7. **Spring MVC or WebFlux?** MVC fits blocking stacks; WebFlux fits end-to-end non-blocking workloads when its complexity is justified.
+7. **Spring MVC or WebFlux?** Spring Model-View-Controller (MVC) fits conventional blocking stacks; Spring WebFlux fits end-to-end non-blocking workloads when its complexity is justified.
 8. **Why Spring Boot instead of Express.js, NestJS, or FastAPI?** Choose the integrated Java ecosystem for complex long-lived systems; choose a lighter or language-specific alternative when its workload and team fit are stronger.
 9. **Why use layered architecture, and why should controllers not access repositories directly?** Layers protect transport-independent business rules and persistence boundaries; bypassing services couples HTTP directly to data access.
 10. **Where should business logic live?** In services or domain objects, independent of controllers and repositories.

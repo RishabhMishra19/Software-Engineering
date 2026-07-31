@@ -1,5 +1,21 @@
 # Design Patterns
 
+## Beginner vocabulary
+
+**Everyday mental model:** think of software as a team. An **object** is one team member in the running program; its **state** is what it currently knows, and its **behavior** is what it does. A **class** is the job description or blueprint used to make similar objects. An **interface** is a role contract: it lists what can be requested without fixing who performs it. A **dependency** is a collaborator needed for the work.
+
+A **design pattern** is a named arrangement of objects and responsibilities that addresses a recurring problem. It is like a familiar kitchen layout: it suggests where responsibilities belong, but it must still fit the actual space. **Unified Modeling Language (UML)** is a standard diagram notation for drawing structure, interactions, and state changes. **Coupling** means how strongly parts rely on each other's details; **cohesion** means how naturally the jobs inside one part belong together.
+
+**Concurrency** means actions can overlap. A pattern that works for one caller
+may need locks, immutable data, idempotency, or another coordination rule when
+several callers use the same state at once.
+
+- **Problem:** recurring change and collaboration pressures can scatter decisions across the code.
+- **Internal mechanics:** each pattern rearranges who creates, wraps, selects, notifies, or delegates to whom.
+- **Concrete example:** Strategy gives several pricing classes one interface and lets a checkout object depend on the chosen one.
+- **Edge cases:** concurrency, retries, failure ordering, invalid state, and a pattern whose extra machinery is larger than the original problem.
+- **Trade-off:** patterns provide flexibility and shared vocabulary but add classes, connections, and indirect control flow.
+
 ## Overview
 
 Design patterns are named, reusable arrangements of responsibilities and collaborations. They are not copy-paste implementations or goals by themselves. Start with a requirement and design pressure, use the simplest solution that works, and introduce a pattern when its benefits exceed its extra types and indirection.
@@ -39,6 +55,16 @@ Use the reasoning order `requirements → problem/pressure → pattern`, never �
 
 ## How does it work?
 
+Each pattern section follows the same reading path:
+
+1. **Everyday mental model:** connect the arrangement to a familiar non-code idea.
+2. **Problem and selection signals:** identify the pressure before naming a pattern.
+3. **Internal mechanics:** explain the collaboration and implementation steps.
+4. **Concrete code and domain example:** connect those mechanics to something executable and recognizable.
+5. **Edge cases:** test failures, ordering, concurrency, lifecycle, and misuse.
+6. **Trade-offs and mistakes:** state the benefit, added cost, and simpler alternatives.
+7. **Interview answer and revision clue:** summarize the distinction without replacing the full explanation.
+
 ### Selection map
 
 | Requirement signal | Consider | Verify before choosing |
@@ -63,6 +89,8 @@ Large conditionals are a symptom, not a diagnosis. A closed mapping from enum to
 
 ### Factory
 
+**Everyday mental model:** order at a counter by naming what you need; the kitchen, not the customer, chooses the exact equipment and construction steps.
+
 **Selection signals:** callers should not select concrete classes; creation depends on configuration or input; constructor and wiring logic is scattered.
 
 **Mechanics:** a creator function or object returns a product through a stable contract. “Factory” is an umbrella term; a simple factory centralizes selection, while GoF Factory Method lets subclasses override a creation step.
@@ -82,6 +110,8 @@ final class GatewayFactory {
 
 **Production examples:** payment or notification provider selection, parser selection by media type, cloud-storage clients, JDBC driver-created connections.
 
+**Edge cases:** unknown provider input needs an explicit failure; construction may need credentials or cleanup; concurrent caching of products must be safe; and a factory returning one shared object has different lifecycle semantics from one creating a fresh object.
+
 **Learning-source walkthrough:**
 
 - **Motivation and bad design:** in the illustrative payment-provider domain, business code directly constructs one gateway. Adding another provider forces callers to change, scatters `new ConcreteGateway()` calls, and tightly couples use cases to construction.
@@ -100,6 +130,8 @@ final class GatewayFactory {
 **Additional source interview checks:** It solves creation complexity; returning an interface is the common approach. Factory chooses/creates an object, whereas Builder assembles a complex object step by step.
 
 ### Abstract Factory
+
+**Everyday mental model:** choose one furniture collection and receive its matching chair, table, and cabinet instead of mixing incompatible pieces.
 
 **Selection signals:** a system must create several related products from one provider, platform, or theme, and mixing families would be invalid.
 
@@ -125,6 +157,8 @@ A `StripeSuite` returns Stripe-compatible products; a `RazorpaySuite` returns Ra
 
 **Production examples:** provider SDK suites, cross-platform UI widgets, database-specific connection/transaction/query components.
 
+**Edge cases:** a partially supported family may be unable to create every role; adding a new product role requires coordinated changes; and products from different factories can still be mixed if concrete types leak or callers bypass the factory.
+
 **Trade-offs:** enforces family consistency and makes switching families easy, but adding a new product role changes every factory. It is strongest when families vary more often than product roles.
 
 **Common mistakes:** using it for one product; grouping unrelated objects; leaking concrete family types to clients; calling a single-product factory “Abstract Factory.”
@@ -135,6 +169,8 @@ A `StripeSuite` returns Stripe-compatible products; a `RazorpaySuite` returns Ra
 **Additional source interview checks:** Use it when several related products must be created consistently. Its primary problem is family creation, not merely hiding one constructor.
 
 ### Builder
+
+**Everyday mental model:** complete a custom order form one named choice at a time, then submit it only when all required information is valid.
 
 **Selection signals:** construction has many optional or named values, ordering constraints, staged setup, validation, or multiple representations.
 
@@ -158,6 +194,8 @@ SearchRequest request = SearchRequest.builder("laptop")
 
 **Production examples:** HTTP requests, immutable configuration, search criteria, protocol messages, test fixtures.
 
+**Edge cases:** repeated `build()` calls need defined copy semantics; a reused builder can leak old values; cross-field rules such as minimum price not exceeding maximum price must be checked; and concurrent use of one mutable builder is usually unsafe.
+
 **Trade-offs:** improves readability and centralizes validation but adds boilerplate and can hide required fields unless the API or type system enforces them.
 
 **Common mistakes:** builders for tiny values; allowing `build()` to create invalid objects; reusing a mutable builder unsafely; confusing construction steps with choosing a product family.
@@ -168,6 +206,8 @@ SearchRequest request = SearchRequest.builder("laptop")
 **Additional source interview checks:** It solves constructor explosion; avoid it for simple objects. Builder assembles one complex object, while Factory selects or creates a product.
 
 ### Singleton
+
+**Everyday mental model:** one reception desk serves a defined office, but that does not imply one desk for every office in the world.
 
 **Selection signals:** the domain or runtime requires one instance within an explicitly defined scope and ownership of that lifecycle must be controlled.
 
@@ -192,6 +232,8 @@ Often the better production implementation is a single application-scoped object
 
 **Production examples:** process-level registries or immutable configuration snapshots. Loggers, pools, and caches may be singletons within a container scope, but that is a deployment choice rather than an inherent property.
 
+**Edge cases:** tests may run in the same process and share stale state; serialization or reflection can create surprises in some implementations; separate processes, class loaders, tenants, or containers each have their own scope; shutdown and resource cleanup still need an owner.
+
 **Trade-offs:** controlled lifecycle can prevent duplicate resources, but global access hides dependencies, complicates isolation and tests, and does not mean one instance across processes, class loaders, tenants, or a cluster.
 
 **Common mistakes:** treating services, users, orders, or mutable domain state as singletons; unsafe lazy initialization; using double-checked locking without `volatile`; a global god object; claiming a Spring singleton is globally unique.
@@ -202,6 +244,8 @@ Often the better production implementation is a single application-scoped object
 **Additional source interview checks:** Thread safety matters because concurrent lazy initialization can create multiple objects. Singleton is not always good; it is frequently overused and should never model independent users, orders, or payments.
 
 ### Adapter
+
+**Everyday mental model:** a travel plug converts one socket shape into another while leaving both the appliance and wall unchanged.
 
 **Selection signals:** existing or third-party code cannot be changed and exposes incompatible methods, data, errors, or protocols.
 
@@ -228,6 +272,8 @@ final class StripeAdapter implements PaymentPort {
 
 **Production examples:** payment gateways, cloud providers, legacy repositories, anti-corruption layers, external messaging APIs.
 
+**Edge cases:** units, currencies, time zones, nullability, error meanings, and retry guarantees may not translate one-to-one; an adapter must not report success when the provider has only accepted work asynchronously.
+
 **Trade-offs:** isolates vendor change and keeps business language clean, but translation can be lossy and adapters require contract and integration tests.
 
 **Common mistakes:** leaking vendor DTOs through the target interface; changing third-party code; swallowing error semantics; placing conversion logic in business services; confusing translation with Facade simplification.
@@ -238,6 +284,8 @@ final class StripeAdapter implements PaymentPort {
 **Additional source interview checks:** Adapter solves interface mismatch and permits existing code to remain unchanged. Use it when systems must collaborate but expose different contracts.
 
 ### Facade
+
+**Everyday mental model:** a hotel front desk gives guests one place to request a stay instead of making them coordinate housekeeping, billing, and room assignment.
 
 **Selection signals:** a client coordinates many subsystem calls for one cohesive use case or needs a stable, simplified entry point.
 
@@ -264,6 +312,8 @@ final class CheckoutFacade {
 
 **Production examples:** checkout, travel booking, SDK entry points, application-service APIs, `JdbcTemplate`-style wrappers over lower-level APIs.
 
+**Edge cases:** one subsystem may succeed before another fails; retries may repeat charges or reservations; transaction boundaries may not span remote systems; advanced clients may still need direct subsystem access.
+
 **Trade-offs:** reduces client coupling and centralizes workflow, but can become a bottleneck or god facade. Transaction, compensation, and partial-failure semantics must be explicit.
 
 **Common mistakes:** moving all domain logic into the facade; exposing a grab bag of unrelated methods; constructing dependencies internally; treating a network API gateway as automatically equivalent to the GoF pattern.
@@ -274,6 +324,8 @@ final class CheckoutFacade {
 **Additional source interview checks:** Facade solves complex subsystem interaction and commonly calls several services—that coordination is its point. Adapter translates; Facade simplifies.
 
 ### Decorator
+
+**Everyday mental model:** add layers of clothing around the same person; each layer adds a feature while the person remains usable in the same role.
 
 **Selection signals:** optional responsibilities must be combined at runtime around the same contract without a subclass for every combination.
 
@@ -296,6 +348,8 @@ PaymentProcessor processor =
 
 **Production examples:** Java I/O streams, HTTP client middleware, metrics/logging/retry wrappers, notification enrichment.
 
+**Edge cases:** wrapper order can change outcomes; retries around non-idempotent work can duplicate effects; two wrappers may both cache or log; exceptions must not accidentally skip required cleanup; equality may refer to the wrapper rather than the wrapped object.
+
 **Trade-offs:** supports flexible composition and focused wrappers, but order can change behavior, object graphs become hard to inspect, and identity/equality can be surprising.
 
 **Common mistakes:** decorators that do not preserve the component contract; using retry around non-idempotent actions without safeguards; putting unrelated business logic in cross-cutting wrappers; confusing Decorator with Proxy.
@@ -306,6 +360,8 @@ PaymentProcessor processor =
 **Additional source interview checks:** Multiple decorators can be chained; this runtime composition is the primary advantage. Use meaningful wrappers—one that contributes no behavior is needless indirection.
 
 ### Proxy
+
+**Everyday mental model:** a security desk stands in front of a restricted room and controls entry while presenting the same destination to visitors.
 
 **Selection signals:** a stand-in must control access, remote communication, lazy creation, caching, authorization, or lifecycle while presenting the real subject's contract.
 
@@ -331,6 +387,8 @@ Common variants include virtual, protection, remote, and caching proxies.
 
 **Production examples:** ORM lazy-loading proxies, RPC stubs, authorization wrappers, cache fronts, framework-generated transactional proxies.
 
+**Edge cases:** stale caches, authorization changes, network timeouts, duplicate retries, lazy-loading after a session closes, and identity differences between proxy and real object can all break an illusion of transparency.
+
 **Trade-offs:** centralizes access policy and can defer expensive work, but adds latency and hidden behavior. Caching introduces invalidation and consistency concerns; remote proxies cannot make network calls behave like local calls.
 
 **Common mistakes:** business logic in the proxy; transparent retries that duplicate side effects; equality or serialization surprises from generated proxies; stacking opaque proxy layers.
@@ -341,6 +399,8 @@ Common variants include virtual, protection, remote, and caching proxies.
 **Additional source interview checks:** Clients often need not know that the proxy is present. Its central problem is controlled access; avoid unnecessary proxy stacks because hidden layers make debugging difficult.
 
 ### Composite
+
+**Everyday mental model:** ask either one file or an entire folder for its size using the same question; a folder answers by asking everything inside it.
 
 **Selection signals:** the domain is a recursive part–whole hierarchy and clients should perform the same operation on a leaf or a group.
 
@@ -367,6 +427,8 @@ final class Folder implements FileSystemNode {
 
 **Production examples:** file trees, UI component trees, organization hierarchies, product categories, expression trees.
 
+**Edge cases:** cycles cause infinite traversal, very deep trees can overflow the call stack, concurrent child changes can invalidate traversal, and some operations such as “add child” make sense for groups but not leaves.
+
 **Trade-offs:** simplifies recursive client code, but a common interface may expose operations meaningless for leaves. Very deep or cyclic graphs require iterative traversal or cycle protection.
 
 **Common mistakes:** using Composite for a flat collection; exposing mutable child collections; allowing cycles in a structure assumed to be a tree; forcing child-management methods onto leaves without a deliberate safe/transparent design choice.
@@ -377,6 +439,8 @@ final class Folder implements FileSystemNode {
 **Additional source interview checks:** A composite may contain composites; that recursive part–whole relation is the core idea. No hierarchy means no Composite.
 
 ### Strategy
+
+**Everyday mental model:** choose a travel route—fastest, cheapest, or scenic—while keeping the destination and traveller unchanged.
 
 **Selection signals:** one task has interchangeable algorithms or policies selected by a client, configuration, or runtime context.
 
@@ -401,6 +465,8 @@ final class FareCalculator {
 
 **Production examples:** ride pricing, discounts, payment routing, tax calculation, matching, compression.
 
+**Edge cases:** no strategy may match the input; selection can change during a request; strategies may need state or thread safety; two algorithms can produce materially different rounding or failure behavior even when they share a method signature.
+
 **Trade-offs:** isolates and tests algorithms independently, but increases objects and requires a selection mechanism. Lambdas or functions may be sufficient when strategies have little state or lifecycle.
 
 **Common mistakes:** one strategy with no expected variation; selecting via type checks inside every strategy; copying shared algorithm steps; assuming a strategy removes all conditionals.
@@ -411,6 +477,8 @@ final class FareCalculator {
 **Additional source interview checks:** Strategy solves multiple algorithms for one task, can be changed at runtime, and is often paired with a Factory that performs selection. Do not introduce it before real variation exists.
 
 ### State
+
+**Everyday mental model:** a locked door and an unlocked door react differently to the same push because their current condition controls what is allowed.
 
 **Selection signals:** an object's allowed operations and behavior vary substantially by lifecycle state, and status checks are distributed.
 
@@ -434,6 +502,8 @@ interface OrderState {
 
 **Production examples:** orders, bookings, vending machines, documents, ATM sessions.
 
+**Edge cases:** two concurrent transitions may race; persisted state may be stale; recovery after a crash may resume midway; timeout transitions may occur without a user action; illegal transitions need a deliberate error rather than silent acceptance.
+
 **Trade-offs:** localizes complex state behavior and removes scattered conditionals, but creates classes and may obscure the full transition graph. Persisting polymorphic state objects can complicate mapping; a status plus transition table may be better for simple workflows.
 
 **Common mistakes:** a class per status when behavior does not differ; state classes plus the original conditionals; transitions available from everywhere; no handling of invalid transitions or concurrent updates.
@@ -444,6 +514,8 @@ interface OrderState {
 **Additional source interview checks:** State solves lifecycle-dependent behavior. State objects can initiate transitions, but creating classes for statuses with no behavioral difference or transitions is unnecessary.
 
 ### Observer
+
+**Everyday mental model:** subscribers leave contact details with a notice board owner and are contacted when a new notice appears.
 
 **Selection signals:** one in-process event has zero-to-many listeners that may subscribe dynamically, and the publisher should not name each concrete reaction.
 
@@ -463,6 +535,8 @@ interface OrderListener { void onConfirmed(OrderConfirmed event); }
 
 **Production examples:** UI event listeners, domain events within one application, change listeners, Spring application events.
 
+**Edge cases:** a listener may unsubscribe during notification, throw an exception, trigger another event recursively, or be retained after it is no longer needed; concurrent subscription changes need safe iteration; asynchronous delivery may reorder or duplicate events.
+
 **Trade-offs:** decouples the publisher from reactions, but synchronous observers extend the publisher's latency and transaction. Asynchronous delivery adds ordering, retry, duplicate, and eventual-consistency concerns.
 
 **Common mistakes:** no unsubscribe mechanism causing memory leaks; mutating subscriptions during notification unsafely; one observer failure blocking all others; calling distributed brokered messaging “Observer” without discussing delivery semantics.
@@ -473,6 +547,8 @@ interface OrderListener { void onConfirmed(OrderConfirmed event); }
 **Additional source interview checks:** Observer solves one event triggering multiple reactions, supports runtime subscription, and works most naturally inside one application boundary. Remember unsubscribe to avoid retained observers.
 
 ### Chain of Responsibility
+
+**Everyday mental model:** a request moves along an escalation line until someone can approve it, reject it, or pass it onward.
 
 **Selection signals:** a request passes through configurable ordered handlers, where each may handle, reject, enrich, stop, or forward it.
 
@@ -494,6 +570,8 @@ interface PaymentCheck {
 
 **Production examples:** servlet and Spring Security filters, middleware, validation pipelines, support escalation, approval limits.
 
+**Edge cases:** no handler may accept the request; a handler may accidentally call the next one twice or not at all; a circular chain never terminates; mutation by one handler can surprise later handlers; handler ordering can change security or correctness.
+
 **Trade-offs:** handlers stay focused and can be reordered, but control flow becomes indirect and success may be ambiguous if no handler processes the request.
 
 **Common mistakes:** circular chains; unclear stop/continue semantics; mutable requests changed unpredictably; using a chain when every fixed step must always run—a straightforward pipeline may be clearer.
@@ -504,6 +582,8 @@ interface PaymentCheck {
 **Additional source interview checks:** Chain solves routing through multiple handlers and is common in middleware and approval workflows. Order matters; circular links such as `A → B → C → A` create nontermination.
 
 ### Command
+
+**Everyday mental model:** write a work order that records what must happen so another person can execute it now, later, or again under controlled rules.
 
 **Selection signals:** an action needs first-class identity or state so it can be queued, scheduled, logged, retried, authorized, stored, or undone.
 
@@ -528,6 +608,8 @@ record GenerateReportCommand(ReportId id, ReportService receiver)
 
 **Production examples:** editor undo/redo, job queues, task schedulers, UI actions, transactional outbox work items.
 
+**Edge cases:** commands can be delivered twice, arrive out of order, outlive the code version that created them, lose authorization context, or target deleted data; “undo” may require compensation because the real world cannot always be restored exactly.
+
 **Trade-offs:** decouples invocation from execution and enables history, but adds command types and serialization/versioning concerns. Retried commands must be idempotent or deduplicated; undo is not automatically possible.
 
 **Common mistakes:** a command class for every trivial local call; business logic in the invoker; storing non-serializable receiver objects in durable jobs; assuming retry is safe; treating event facts as commands—commands request, events report.
@@ -538,6 +620,8 @@ record GenerateReportCommand(ReportId id, ReportService receiver)
 **Additional source interview checks:** Command decouples sender and receiver and treats requests as first-class objects. Keep invokers free of business logic and avoid a command class for a trivial call that needs none of these capabilities.
 
 ### Template Method
+
+**Everyday mental model:** a recipe fixes the order—prepare, cook, serve—while allowing different dishes to customize selected steps.
 
 **Selection signals:** related processes share a stable algorithm skeleton while a few well-defined steps vary.
 
@@ -564,6 +648,8 @@ abstract class DocumentProcessor {
 - **Fast revision:** most workflow code is identical but a few steps differ → keep the skeleton once and expose hooks; fixed flow + custom steps → think Template Method.
 
 **Production examples:** framework lifecycle hooks, batch read-transform-write workflows, parsers, test fixtures. `JdbcTemplate` embodies a related callback-based template approach even though clients often provide composition-style callbacks rather than subclasses.
+
+**Edge cases:** a subclass may skip a required base step, depend on call order that is not documented, throw during a hook, or need a workflow too different for the fixed skeleton; base-class changes can silently affect every subclass.
 
 **Trade-offs:** enforces ordering and removes duplication, but inheritance tightly couples subclasses to base implementation and can produce fragile hooks. Strategy is preferable when algorithms must be selected or composed dynamically.
 
@@ -600,6 +686,7 @@ Compact recognition labels from the source pattern-identification framework. Use
 | Factory | Which Object To Create? |
 | Abstract Factory | Related Objects Together |
 | Builder | Complex Object Construction |
+| Singleton | One Instance In A Defined Scope |
 | Decorator | Add Features Dynamically |
 | Adapter | Convert Interface |
 | Facade | Single Entry Point |
@@ -656,15 +743,15 @@ Patterns commonly collaborate: a Factory selects a Strategy; an Abstract Factory
 
 ## Interview Questions
 
-1. Given a large conditional, how do you determine whether Strategy, State, Factory, or no pattern is appropriate?
-2. Why is Abstract Factory resistant to new product roles but friendly to new families?
-3. When should DI-managed scope replace a globally accessed Singleton?
-4. How do Adapter, Facade, Decorator, and Proxy differ despite similar delegation?
-5. What delivery and failure decisions are missing from a basic Observer implementation?
-6. When is a fixed pipeline clearer than Chain of Responsibility?
-7. What makes Command retry and undo safe?
-8. When does Template Method create a fragile base class?
-9. Which patterns favor composition, and which commonly rely on inheritance?
+1. **Given a large conditional, how do you determine whether Strategy, State, Factory, or no pattern is appropriate?** Use Strategy for externally selected algorithms, State for lifecycle-dependent behavior, and Factory for product creation. Keep the conditional when the cases are small, closed, and clearer as data or direct code.
+2. **Why is Abstract Factory resistant to new product roles but friendly to new families?** A new family implements the existing creation operations in one new factory. A new product role changes the abstract factory contract and therefore every concrete factory.
+3. **When should DI-managed scope replace a globally accessed Singleton?** Prefer dependency-injection (DI) scope when one application-owned instance is sufficient and consumers should declare the dependency explicitly. Use global lookup only when the runtime truly requires that access model and its test and lifecycle costs are acceptable.
+4. **How do Adapter, Facade, Decorator, and Proxy differ despite similar delegation?** Adapter translates an incompatible contract; Facade simplifies a subsystem workflow; Decorator composes optional responsibilities; Proxy controls access, location, or lifecycle while preserving the subject contract.
+5. **What delivery and failure decisions are missing from a basic Observer implementation?** Define synchronous or asynchronous delivery, ordering, exception isolation, reentrancy, subscription lifetime, thread safety, retries, duplicate handling, and whether durable brokered messaging is required.
+6. **When is a fixed pipeline clearer than Chain of Responsibility?** Use a direct pipeline when every known step always runs in a fixed order. Use Chain when handlers may handle, reject, stop, forward, or be reconfigured independently.
+7. **What makes Command retry and undo safe?** Safe retry needs idempotency or deduplication, versioned serialization, and explicit failure policy. Undo needs captured prior state or a valid compensating action; it is not automatic.
+8. **When does Template Method create a fragile base class?** It becomes fragile when subclasses depend on undocumented implementation details, too many hooks are overridable, or base-class changes unexpectedly alter subclass behavior. Prefer Strategy when complete algorithms must vary independently.
+9. **Which patterns favor composition, and which commonly rely on inheritance?** Strategy, State, Observer, Adapter, Facade, Decorator, Proxy, Composite, Chain, Command, Builder, and many Factory forms primarily compose collaborators. Template Method and GoF Factory Method commonly rely on inheritance; Abstract Factory uses interface-based composition, and Singleton is mainly a lifecycle pattern.
 10. **Interview tip:** identify the pressure first, sketch participants and ownership, walk one production flow, and state why a simpler alternative is insufficient.
 
 ## Fast revision

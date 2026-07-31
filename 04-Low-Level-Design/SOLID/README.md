@@ -1,8 +1,26 @@
 # SOLID
 
+## Beginner vocabulary
+
+**Everyday mental model:** use a workshop as the mental model. An **object** is one working item in a running program; its **state** is the information it remembers and its **behavior** is the work it performs. A **class** is a blueprint for making similar objects. An **interface** is a promise of available operations, like a standard plug, while each implementation may fulfill that promise differently. A **dependency** is another part required to do a job. A **design pattern** is a reusable arrangement for a recurring problem, and **Unified Modeling Language (UML)** is a standard way to draw software parts and flows.
+
+**Coupling** describes how much one part relies on another part's decisions. **Cohesion** describes how naturally the responsibilities within one part belong together. A cohesive payment component handles related payment concerns; a tightly coupled checkout knows vendor-specific payment details that make replacement difficult.
+
+In the Single Responsibility Principle, an **actor** means the stakeholder,
+business role, or group whose needs cause a module to change. It does not mean
+an object must have only one method or serve only one end user.
+
+- **Problem:** change spreads through poorly chosen boundaries.
+- **Internal mechanics:** the five principles separate unrelated reasons to change, isolate proven variation, preserve behavioral promises, keep interfaces focused, and point dependencies toward stable business needs.
+- **Concrete example:** checkout can depend on a small `PaymentPort` interface while separate Stripe and Razorpay classes implement it.
+- **Edge cases:** an implementation may compile but break its promise, an interface may be split into unusably tiny pieces, or an abstraction may be created before any variation exists.
+- **Trade-off:** change becomes more localized and testing becomes easier, at the cost of extra types, indirection, and wiring.
+
 ## Overview
 
-SOLID is a set of five object-oriented design principles for keeping change localized and contracts dependable. The principles are heuristics, not rules that require an interface for every class or a pattern for every variation. Apply them where the cost of change, testing, or substitution justifies the abstraction.
+SOLID names five object-oriented design principles: the Single Responsibility, Open/Closed, Liskov Substitution, Interface Segregation, and Dependency Inversion principles. Together, they help keep change localized and contracts dependable.
+
+These principles are heuristics, not rules that require an interface for every class or a pattern for every variation. Begin with the change or substitution problem, apply the smallest useful boundary, and accept the abstraction only when its benefit justifies the extra indirection.
 
 ## Why do we need it?
 
@@ -19,6 +37,8 @@ The goal is not the maximum number of classes. It is high cohesion, deliberate d
 ## How does it work?
 
 ### Single Responsibility Principle (SRP)
+
+**Everyday mental model:** one help desk may perform several related support tasks, but it should not also own payroll and building security.
 
 > A module should be responsible to one actor—a cohesive reason to change.
 
@@ -47,9 +67,13 @@ The application service coordinates registration; persistence and notification d
 
 **Signals:** a class changes for unrelated business policies, owns unrelated terminology, has many unrelated dependencies, or requires broad tests for a small change.
 
+**Edge cases:** one use case may legitimately coordinate several collaborators; two responsibilities may change together today but belong to different actors; splitting too far can leave a trail of pass-through classes with no meaningful ownership.
+
 **Mistakes:** equating SRP with “small class,” producing anemic pass-through classes, or splitting behavior that protects one invariant.
 
 ### Open/Closed Principle (OCP)
+
+**Everyday mental model:** a power strip accepts another compatible device without requiring an electrician to rebuild the strip, but it still supports only the plug standard it was designed for.
 
 > Software entities should be open for extension but closed for modification at a chosen axis of change.
 
@@ -77,9 +101,13 @@ Adding surge or membership pricing adds a policy. Some wiring or registration mu
 
 **Signals:** a stable switch grows whenever a provider, algorithm, format, or rule is added.
 
+**Edge cases:** registration or wiring still changes when an implementation is added; two implementations may not share a truly stable contract; a small closed rule can be safer as an enum or table than as an extension framework.
+
 **Mistakes:** predicting every possible variation, hiding a switch inside a “factory” without improving extensibility, or introducing polymorphism for a closed two-case rule.
 
 ### Liskov Substitution Principle (LSP)
+
+**Everyday mental model:** any key sold as fitting a lock should open it under the promised conditions; a key with the same shape that jams the lock breaks the promise.
 
 > Any value of a subtype must be usable wherever its supertype is expected without violating the client's reasonable assumptions.
 
@@ -100,9 +128,13 @@ A gateway that always throws `UnsupportedOperationException`, silently ignores t
 
 **Signals:** subtype-specific checks, overridden methods that reject ordinary parent inputs, no-op implementations, or unsupported operations.
 
+**Edge cases:** timing, ordering, side effects, exceptions, and durability can violate a contract even when return types match; a stronger security check may be correct yet still mean the subtype does not fit the original promise.
+
 **Mistakes:** treating “it compiles” as substitutability or using inheritance only for code reuse.
 
 ### Interface Segregation Principle (ISP)
+
+**Everyday mental model:** a restaurant menu should not force every customer to order breakfast, lunch, and dinner together; each customer needs the relevant choices.
 
 > Clients should not depend on methods they do not use.
 
@@ -122,9 +154,13 @@ A provider may implement one or both capabilities. Modern Java interfaces may co
 
 **Signals:** blank methods, exceptions for unsupported operations, broad mocks, or clients recompiled for unrelated methods.
 
+**Edge cases:** splitting a cohesive transaction across interfaces can make correct usage harder; too many one-method interfaces increase navigation and wiring; different clients may still intentionally share one stable capability.
+
 **Mistakes:** one interface per implementation, indiscriminately splitting every method, or choosing an interface solely because “interfaces are better.”
 
 ### Dependency Inversion Principle (DIP)
+
+**Everyday mental model:** an appliance is designed around a standard socket, while an adapter handles a particular building's wiring; the appliance does not contain the power station.
 
 > High-level policy should not depend directly on low-level detail; both should depend on abstractions owned around the policy boundary.
 
@@ -145,6 +181,8 @@ final class CheckoutService {
 The abstraction should express checkout's needs, not mirror a vendor SDK. A Stripe adapter can implement the port. Dependency injection supplies that adapter; DI is a construction technique, while DIP determines dependency direction. Depending on an interface is not sufficient if the high-level module imports and instantiates the concrete implementation or if the interface is shaped by the vendor.
 
 **Signals:** business classes call constructors for infrastructure, tests need real networks or databases, or provider replacement changes policy code.
+
+**Edge cases:** an interface can still leak vendor concepts; a supposedly stable abstraction may change with business policy; construction code must eventually choose a concrete implementation; over-abstraction can hide a direct dependency that was already clear.
 
 **Mistakes:** creating an interface for every class, service locators that hide dependencies, field injection, or assuming a DI container automatically creates good boundaries.
 
@@ -325,13 +363,13 @@ Most-asked checks:
 
 ## Interview Questions
 
-1. What is a “reason to change” in SRP, and why is one-method-per-class a poor interpretation?
-2. Does OCP mean existing code is never modified? Where would you place an extension boundary?
-3. How can a subtype violate LSP while satisfying the language's type checker?
-4. How does ISP differ from simply making every interface tiny?
-5. Explain DIP versus dependency injection and inversion of control.
-6. Why does “depend on interfaces” sometimes fail to achieve DIP?
-7. When would an abstract class be more appropriate than an interface?
+1. **What is a “reason to change” in SRP, and why is one-method-per-class a poor interpretation?** A reason to change is responsibility to an actor or cohesive business concern. Several methods may protect one invariant or serve one capability, so splitting by method can reduce rather than improve cohesion.
+2. **Does OCP mean existing code is never modified? Where would you place an extension boundary?** No. The Open/Closed Principle protects stable policy along one expected axis of change. Place the boundary where supported algorithms, providers, formats, or rules vary repeatedly.
+3. **How can a subtype violate LSP while satisfying the language's type checker?** The type checker verifies signatures, not the full behavioral contract. A subtype can reject valid inputs, weaken outputs, break invariants, change promised side effects, or always throw an unsupported-operation exception.
+4. **How does ISP differ from simply making every interface tiny?** The Interface Segregation Principle shapes contracts around client needs. Keep cohesive operations together and split only capabilities that different clients or implementations use independently.
+5. **Explain DIP versus dependency injection and inversion of control.** The Dependency Inversion Principle determines which direction dependencies point; dependency injection supplies a chosen collaborator; inversion of control is the broader transfer of construction or flow control to external code or a framework.
+6. **Why does “depend on interfaces” sometimes fail to achieve DIP?** An interface may still mirror a vendor, belong to the wrong layer, or be paired with direct concrete construction. DIP requires a stable, policy-shaped abstraction owned around the high-level boundary.
+7. **When would an abstract class be more appropriate than an interface?** Use an abstract class when related implementations need cohesive shared state, construction rules, invariant implementation, or protected extension hooks. Use an interface when clients primarily need a capability contract or implementations need multiple roles.
 8. **Interview tip:** name the change pressure, show the smallest useful boundary, and discuss the extra indirection it costs.
 
 ## References

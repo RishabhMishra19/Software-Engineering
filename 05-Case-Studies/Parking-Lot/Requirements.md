@@ -1,5 +1,17 @@
 # Parking Lot Requirements
 
+## Beginner Orientation
+
+The facility must keep its software record synchronized with physical spaces.
+On a normal visit, a driver enters through a gate, receives one active ticket
+for one compatible occupied spot, pays a fee at exit, and only then frees the
+spot. A failed payment leaves both ticket and spot active.
+
+“Atomic” means observers never see half the operation—for example, a spot
+removed from availability without a ticket. Multiple gates create races, money
+must use exact minor units, and every state transition must preserve the
+invariants listed below.
+
 ## Scope
 
 The system models one parking facility containing multiple floors and multiple entry and exit gates. It manages spot assignment, ticket lifecycle, fee calculation, payment, release, and availability. Physical gate hardware, a real payment gateway, persistence, and distributed deployment are outside the initial implementation.

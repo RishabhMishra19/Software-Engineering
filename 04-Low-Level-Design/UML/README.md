@@ -1,8 +1,27 @@
 # Unified Modeling Language (UML)
 
+## Beginner vocabulary
+
+**Everyday mental model:** think of UML as the set of maps used for a building: one map shows rooms, another shows how people move through them, and another shows which modes an alarm can enter. An **object** is one actual thing in a running program. Its **state** is the information or lifecycle condition it currently holds, and its **behavior** is what it can do. A **class** is the blueprint for similar objects. An **interface** is a promise of operations that different classes can fulfill. A **dependency** means one part needs another to do some work. A **design pattern** is a named, reusable arrangement of such parts.
+
+An **entity** is a domain object with a continuing identity, such as one
+specific order. A class is the blueprint, an object is one runtime instance,
+and an entity is an object whose identity remains meaningful as its state
+changes.
+
+**Coupling** is how strongly parts depend on one another's details. **Cohesion** is how closely the responsibilities inside one part belong together. UML can expose both, but a diagram does not automatically improve either one.
+
+- **Problem:** prose can hide structure and call order.
+- **Internal mechanics:** class diagrams show blueprints and structural links, sequence diagrams show messages over time, and state-machine diagrams show legal lifecycle changes.
+- **Concrete example:** booking diagrams can separately show that `Booking` owns order lines, that payment occurs after a seat hold, and that a booking moves from created to confirmed or cancelled.
+- **Edge cases:** ambiguous arrows, missing failure branches, illegal transitions, and diagrams that drift away from code.
+- **Trade-off:** diagrams can create quicker shared understanding but require time and precision to maintain another representation.
+
 ## Overview
 
-UML is a standardized visual language for describing software structure and behavior. In low-level design, class, sequence, and state-machine diagrams answer complementary questions:
+Unified Modeling Language (UML) is a standardized visual language for describing software structure and behavior. It makes relationships and flows visible when prose alone would be hard to review.
+
+In low-level design (LLD), class, sequence, and state-machine diagrams answer complementary questions:
 
 - **Class diagram:** what types and structural relationships exist?
 - **Sequence diagram:** how do participants collaborate over time for one scenario?
@@ -17,6 +36,10 @@ Prose alone can hide ownership, cardinality, dependency direction, call order, f
 ## How does it work?
 
 ### Class diagrams
+
+**Everyday mental model:** a class diagram is like a labeled floor plan: it shows what kinds of rooms exist and how they connect, not the order in which a person walks through them.
+
+**Problem:** prose can leave ownership, quantity, and dependency direction ambiguous.
 
 A class box may show name, attributes, and operations. Visibility is commonly `+` public, `-` private, `#` protected, and `~` package. Italics or `{abstract}` mark abstract classifiers; `<<interface>>` marks an interface.
 
@@ -61,9 +84,15 @@ classDiagram
 
 The filled diamond is justified only if `OrderLine` is an exclusive part of one `Order`. A `Ride` referencing a `Driver` is normally a plain association, because the ride does not own the driver's lifecycle. Shared aggregation adds little beyond association in many software models; do not use a diamond merely because one class has a field.
 
+**Edge cases and trade-offs:** bidirectional links, qualified associations, generic types, and framework-generated relationships can make a precise diagram crowded. Show the detail needed for the decision; omitted detail improves readability but can hide an important constraint.
+
 ### Sequence diagrams
 
-Sequence diagrams model one scenario. Participants appear across the top, time flows downward, lifelines show existence, and activation bars may show execution. Common messages include synchronous calls, asynchronous messages, returns, and self-calls.
+**Everyday mental model:** a sequence diagram resembles a time-ordered conversation transcript showing who speaks to whom and when.
+
+**Problem:** a list of components does not reveal call order, waits, branches, or recovery after failure.
+
+Sequence diagrams model one scenario. Participants appear across the top, time flows downward, **lifelines** show each participant's presence over time, and activation bars may show execution. Common messages include synchronous calls, asynchronous messages, returns, and self-calls.
 
 Combined fragments express control:
 
@@ -100,7 +129,13 @@ sequenceDiagram
 
 Show the behavior that affects the decision: failure, retry, transaction boundary, asynchronous delivery, or concurrency. Avoid turning the diagram into a list of every getter and mapper.
 
+**Edge cases and trade-offs:** retries can duplicate side effects, asynchronous replies may arrive out of order, and concurrent branches may race. Adding every return and internal call makes the diagram accurate but unreadable; omitting failure paths can make it dangerously reassuring.
+
 ### State-machine diagrams
+
+**Everyday mental model:** a traffic light has meaningful modes, and only certain events permit movement from one mode to another.
+
+**Problem:** a raw status value does not explain which actions are legal, what triggers change, or what happens during that change.
 
 A state machine models a stateful entity's permitted transitions. A transition is commonly labeled:
 
@@ -124,6 +159,8 @@ stateDiagram-v2
 ```
 
 List illegal or guarded transitions explicitly when they are important. A transition table can complement the picture for exhaustive validation.
+
+**Edge cases and trade-offs:** two events may arrive concurrently, timers may trigger transitions, recovery may restart from a persisted state, and nested or parallel states may be needed. A full state machine gives precision but can be heavier than a simple status plus a small validated transition table.
 
 ### Choosing and combining diagrams
 
@@ -406,13 +443,13 @@ Fast revision:
 
 ## Interview Questions
 
-1. How do class, sequence, and state-machine diagrams differ?
-2. What is the difference between association, shared aggregation, and composition?
-3. How do you show interface realization and a temporary dependency?
-4. Where do multiplicities appear, and what does `0..1` mean?
-5. How would you show errors, optional behavior, loops, and concurrency in a sequence diagram?
-6. What belongs on a state transition label?
-7. Do interviews require perfect UML notation?
+1. **How do class, sequence, and state-machine diagrams differ?** A class diagram shows static structure, a sequence diagram shows interactions over time for one scenario, and a state-machine diagram shows valid lifecycle states and transitions.
+2. **What is the difference between association, shared aggregation, and composition?** Association is a general structural link. Shared aggregation is a weak whole–part relationship whose parts remain independent. Composition is exclusive whole–part ownership with a normally dependent lifecycle.
+3. **How do you show interface realization and a temporary dependency?** Realization uses a dashed line with a hollow triangle pointing to the interface. A temporary dependency uses a dashed arrow pointing to the supplier.
+4. **Where do multiplicities appear, and what does `0..1` mean?** Multiplicities appear at association ends. `0..1` means that an object may be linked to no instance or one instance at that end.
+5. **How would you show errors, optional behavior, loops, and concurrency in a sequence diagram?** Use `alt` for success/error branches, `opt` for optional behavior, `loop` for repetition, and `par` for concurrent fragments.
+6. **What belongs on a state transition label?** Use `event [guard] / effect`: the trigger, an optional condition, and an optional action caused by the transition.
+7. **Do interviews require perfect UML notation?** No. Use a clear legend and consistent notation, then spend precision on ownership, multiplicity, failure paths, guards, and legal transitions.
 8. **Interview tip:** declare a compact legend, model one critical flow, and spend precision on ownership, multiplicity, failures, and state transitions.
 
 ## References

@@ -2,7 +2,9 @@
 
 ## Overview
 
-Representational State Transfer (REST) is an architectural style for networked systems. A RESTful HTTP API exposes resource representations through uniform HTTP semantics, keeps requests self-contained, and allows intermediaries to cache responses where permitted.
+Representational State Transfer (REST) treats application information as addressable resources, much like a library gives each book a stable catalog location and standard actions for retrieving or updating its record. Technically, REST is an architectural style for networked systems. A RESTful Hypertext Transfer Protocol (HTTP) application programming interface (API) exposes representations of resources through uniform HTTP semantics, keeps requests self-contained, and allows intermediaries to cache responses where permitted.
+
+**Prerequisites:** A client sends a request and a server returns a response. A resource is a concept such as an order, not necessarily one database row. A representation is one transferable view of that resource, commonly JavaScript Object Notation (JSON). A Uniform Resource Identifier (URI), such as `/orders/42`, identifies it. Create, read, update, and delete (CRUD) describes four common data operations.
 
 ## Why do we need it?
 
@@ -22,6 +24,13 @@ Identify resources with stable URIs and use methods according to their semantics
 
 Use status codes consistently: `2xx` success, `3xx` redirection, `4xx` client-side conditions, and `5xx` server failures. `401` means authentication is required or invalid; `403` means the request is understood but not permitted.
 
+A concrete update flow is:
+
+1. The client sends `GET /orders/42`.
+2. The server authenticates the client, authorizes access to order `42`, loads it, and returns `200 OK` with JSON and an entity tag (`ETag`) version marker.
+3. The client changes an allowed field and sends `PATCH /orders/42` with `If-Match: "<previous ETag>"`.
+4. The server applies the change only if the version still matches. Otherwise it returns `412 Precondition Failed`, preventing one editor from silently overwriting another.
+
 ### Representations and evolution
 
 Representations are negotiated through media types. Preserve backward compatibility by adding optional fields, using tolerant readers, and publishing deprecation policy. Introduce a new version only for breaking contract or semantic changes. URI versioning is visible and easy to route; media-type or header versioning keeps resource identifiers stable but is less obvious.
@@ -36,7 +45,7 @@ Clients should set timeouts and retry only transient failures. Safe and idempote
 
 ### Error contracts
 
-Return machine-readable, stable error types with safe detail and correlation metadata. Centralize mapping from domain failures to HTTP; do not expose stack traces, SQL, or credentials. RFC 9457 Problem Details is a standard representation.
+Return machine-readable, stable error types with safe detail and correlation metadata. Centralize mapping from domain failures to HTTP; do not expose stack traces, Structured Query Language (SQL), or credentials. Request for Comments (RFC) 9457 Problem Details is a standard representation.
 
 ### Trade-offs
 
@@ -44,6 +53,14 @@ Return machine-readable, stable error types with safe detail and correlation met
 - Coarse representations reduce calls but increase coupling and payload size.
 - URI versioning is explicit but duplicates routes; negotiation-based versioning is cleaner but harder to inspect.
 - Offset pagination is simple; cursor pagination is more stable and scalable but cannot jump arbitrarily.
+
+### Edge cases and production behavior
+
+- `DELETE` is idempotent by intended state, but a repeat may return `404 Not Found`; idempotency does not require identical response bodies.
+- A proxy can retry a request after losing the response. Idempotency keys need durable, correctly scoped deduplication rather than an in-memory flag.
+- Caches can serve private data to the wrong user when keys omit authorization or representation variants.
+- Offset pages can skip or repeat records while new rows arrive; stable ordering needs a unique tie-breaker even with cursor pagination.
+- Production APIs bound body size, page size, request time, and concurrent work, and they measure latency, errors, traffic, and saturation per operation.
 
 ## Advantages
 
@@ -58,13 +75,13 @@ Return machine-readable, stable error types with safe detail and correlation met
 - Fixed representations can over-fetch data.
 - Related views may require multiple requests or purpose-built endpoints.
 - Breaking changes require migration and sometimes explicit versions.
-- Poor resource design degrades into action-heavy RPC over HTTP.
+- Poor resource design degrades into action-heavy remote procedure call (RPC) behavior over HTTP.
 - Exactly-once business execution is not guaranteed by HTTP.
 
 ## Best Practices
 
 - Design around domain resources and standard method semantics.
-- Document schemas and behavior with OpenAPI.
+- Document schemas and behavior with the OpenAPI Specification, a machine-readable description format for HTTP APIs.
 - Validate requests at the boundary and enforce domain rules in services.
 - Use consistent status codes and Problem Details errors.
 - Support conditional requests, caching, and idempotency where applicable.

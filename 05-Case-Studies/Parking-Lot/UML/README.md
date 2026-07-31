@@ -1,5 +1,11 @@
 # Parking Lot Class Diagram
 
+A driver does not interact with every class. Entry and exit gates delegate to
+`ParkingLot`; the lot coordinates floors, spots, tickets, policies, and payment.
+The first Mermaid diagram preserves the source teaching hierarchy. The second
+shows the hardened value model and additional consistency boundaries. Compare
+them as original versus corrected, not as two simultaneous implementations.
+
 ## Source-derived teaching design
 
 This conceptual view preserves the source's explicit inheritance hierarchies
@@ -96,6 +102,10 @@ families isolate allocation and pricing. The source class called
 order, not a distance-based nearest spot.
 
 ## Editorial hardened design / Professional corrections
+
+The next Mermaid class diagram introduces the corrected implementation. It
+flattens behavior-free subtypes, makes payment and compatibility injectable,
+and puts availability pools and lifecycle updates behind `ParkingLot`.
 
 ```mermaid
 classDiagram

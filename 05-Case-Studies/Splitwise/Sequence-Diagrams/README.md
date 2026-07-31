@@ -2,6 +2,12 @@
 
 ## Idempotent Expense Creation
 
+These diagrams show calls over time. First, one expense is normalized and
+committed exactly once despite retries. Second, a versioned balance snapshot is
+converted into advisory transfers. The database transaction prevents concurrent
+writers from exposing a journal without matching balances; exact money keeps
+every transfer and balance zero-sum.
+
 ```mermaid
 sequenceDiagram
     actor Member
@@ -26,6 +32,10 @@ sequenceDiagram
 ```
 
 ## Balance Simplification
+
+This second Mermaid sequence introduces balance simplification. It reads one
+consistent, versioned snapshot and derives transfers without mutating money or
+ledger state; a new expense makes the proposal stale and forces recalculation.
 
 ```mermaid
 sequenceDiagram

@@ -2,7 +2,9 @@
 
 ## Overview
 
-GraphQL is a query language and execution specification for typed APIs. A schema defines object types and operations; clients select fields, and resolvers obtain the requested data. It commonly exposes one HTTP endpoint but is not limited to HTTP.
+GraphQL lets a client order exactly the named pieces of data it needs, much like selecting items from a menu instead of receiving a fixed meal. Technically, it is a query language and execution specification for typed application programming interfaces (APIs). A schema—the published set of available types and operations—defines the menu; clients select fields, and resolver functions obtain the requested data. It commonly exposes one Hypertext Transfer Protocol (HTTP) endpoint but is not limited to HTTP.
+
+**Prerequisites:** A client requests data from a server. A field is one named value, such as a product's `name`. A type defines the fields and shapes a value may have. A database or another service often supplies the underlying data. Read the [Representational State Transfer (REST) guide](../REST/README.md) for the standard HTTP alternative.
 
 ## Why do we need it?
 
@@ -16,9 +18,22 @@ Use it when client flexibility and data composition justify the operational cost
 
 The schema definition language declares types, fields, arguments, queries, mutations, and subscriptions. The server parses and validates a document, selects an operation, then executes fields through resolvers. Nullability is part of the contract; a non-null field failure propagates to the nearest nullable parent.
 
+A concrete query might request only a product's name and price:
+
+```graphql
+query ProductCard {
+  product(id: "42") {
+    name
+    price
+  }
+}
+```
+
+The server validates those fields against the schema, authorizes access, resolves `product`, then resolves `name` and `price`. The response mirrors the requested shape; an unknown field fails validation before execution.
+
 ### Data loading
 
-Naive nested resolvers can produce N+1 database or service calls. Request-scoped batching and caching—commonly the DataLoader pattern—combine lookups without leaking data between users. Resolvers should delegate domain rules rather than become a business-logic layer.
+Naive nested resolvers can produce the N+1 problem: one call loads a list of N items, then N additional calls load related data for each item. Request-scoped batching and caching—commonly the DataLoader pattern—combine lookups without leaking data between users. Resolvers should delegate domain rules rather than become a business-logic layer.
 
 ### Security and resource control
 
@@ -38,6 +53,14 @@ A response may contain both `data` and `errors`, enabling partial results. Put s
 - One graph simplifies consumption but can become an organizational coupling point.
 - Schema evolution often avoids explicit versions but does not eliminate breaking-change management.
 - Partial results improve resilience for some views but complicate client logic and observability.
+
+### Edge cases and production behavior
+
+- A syntactically valid small query can still be expensive if a field triggers a broad search or slow downstream service; depth limits alone are insufficient.
+- Aliases can request the same costly field repeatedly, so cost accounting must consider breadth and repetition.
+- A nullable field may fail while siblings succeed, producing both `data` and `errors`; clients must not treat an HTTP success status as complete success.
+- Request-scoped caches must include authorization context. Reusing a loader globally can expose one user's data to another.
+- Production teams track operation names, field latency, resolver errors, downstream calls, query cost, and rejected queries because one endpoint hides those distinctions.
 
 ## Advantages
 

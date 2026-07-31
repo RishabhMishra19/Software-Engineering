@@ -1,5 +1,16 @@
 # BookMyShow Class Model
 
+Before reading the arrows, remember the checkout: inventory creates a temporary
+hold, a booking is created from that hold, and payment moves it to a terminal
+state. `ShowInventory` exists as the aggregate and race boundary; `Hold` records
+ownership and expiry; `Booking` records customer and payment state; the enums
+limit results to named legal values. Composition arrows mean the inventory owns
+collections of holds and bookings; dependency arrows mean a method consumes a
+value without owning it.
+
+The following Mermaid class diagram is a static map of those responsibilities,
+not the order of runtime calls.
+
 ```mermaid
 classDiagram
     class ShowInventory {

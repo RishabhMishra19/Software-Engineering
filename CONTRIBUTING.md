@@ -115,6 +115,42 @@ Use the narrowest accurate label, combine labels when a document contains materi
 - Keep examples minimal and correct; never include credentials, personal data, or secrets.
 - Avoid duplicate topic content. Link to the canonical topic page and focus on the context-specific application.
 
+## Repository-wide readability standard
+
+Write for any curious reader, including someone with no software-engineering background:
+
+- Use layers: begin with an everyday-language mental model, then explain the
+  technical mechanism, a concrete example, edge cases, and production trade-offs.
+- Go deep enough to explain what happens internally and why. Easy language must
+  not mean shallow content.
+- Define jargon and acronyms at first use. Retain and explain precise terms.
+- Explain why a concept or decision matters before describing its internals.
+- Use short sentences and paragraphs, step-by-step flows, and one idea at a time.
+- Ground abstract concepts in concrete, accurate examples.
+- Explain prerequisites when a section depends on another concept. Do not assume
+  the reader already understands operating systems, networks, databases, or code.
+- Clearly distinguish verified facts, stated assumptions, and recommendations.
+- Answer interview questions with concise key points and explanations.
+  Do not list prompts alone.
+- Use diagrams or tables only when they are clearer than prose.
+- Avoid filler, unexplained abbreviations, and vague claims about companies.
+  Avoid needless passive voice and oversimplified absolutes.
+
+### Readability review checklist
+
+- [ ] The opening explains the subject in plain English and says why it matters.
+- [ ] A reader without an engineering background can understand the mental model.
+- [ ] Later sections explain the internal mechanism, edge cases, and trade-offs.
+- [ ] Jargon, acronyms, and precise technical terms are explained at first use.
+- [ ] Ideas appear one at a time in short sentences or step-by-step flows.
+- [ ] Concrete examples support abstract explanations where useful.
+- [ ] Required background concepts are explained or linked before they are used.
+- [ ] Facts, assumptions, and recommendations are clearly distinguished.
+- [ ] Interview answers provide concise key points rather than prompts alone.
+- [ ] Every diagram or table is clearer than an equivalent prose explanation.
+- [ ] The text avoids filler, vague claims, passive voice, and absolutes.
+- [ ] Beginners can follow the explanation without losing technical precision.
+
 ## Validation checklist
 
 Before submitting a contribution, verify:

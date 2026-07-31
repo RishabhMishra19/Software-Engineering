@@ -2,8 +2,34 @@
 
 > **Provenance:** Editorial addition; the matching source stub was empty.
 
+Splitwise records shared expenses and answers a simple question: after several
+people pay on one another's behalf, who owes whom? The system converts each
+expense into exact debits and credits, keeps every member's net position, and
+can suggest transfers that settle those positions.
+
+Members create expenses and request balances or settlements. `ExpenseLedger`
+owns the journal and balances; `Expense` records one accepted fact; `Split`
+defines how the total is allocated; `Money` preserves exact currency values;
+and `Settlement` is an advisory transfer. Positive balances are credits,
+negative balances are debts, and the group total must always be zero.
+
 ## Problem Statement
 Design a shared-expense service that records who paid, allocates exact monetary shares, maintains consistent balances, and suggests settlements without losing cents or duplicating retried expenses.
+
+## Normal Flow, Before the Diagrams
+
+1. A member submits one expense ID, payer, total, and split rule.
+2. The ledger converts the total to exact shares in minor units, validates that
+   they add back to the total, and creates zero-sum postings.
+3. One transaction stores the immutable expense and updates member balances.
+4. Reads return the balance projection; settlement reads may suggest who pays
+   whom but do not change the ledger.
+5. An actual repayment is recorded as another entry so history remains intact.
+
+Two simultaneous expenses for one group can otherwise overwrite a balance
+projection. A transaction or version check serializes them. Reusing the same
+expense ID is safe only when the normalized payload is identical. Decimal or
+integer-minor-unit money avoids floating-point results such as a missing cent.
 
 ## Functional Requirements
 - Add an expense with equal or exact shares.
@@ -21,9 +47,19 @@ Detailed behavior is in [Requirements](Requirements.md).
 - Retries must not change balances more than once.
 
 ## Design Decisions
-Money uses scaled decimal values rather than binary floating point. Each expense stores its resolved shares as immutable facts. Equal-split remainder cents are assigned in stable user-ID order. The ledger stores net positions; this is compact and supports settlement simplification, while immutable expense entries remain the source of truth. See [Design](Design.md).
+Money uses scaled decimal values rather than binary floating point so cents
+are never lost to representation error. Each expense stores its resolved
+shares as immutable facts. Equal-split remainder cents are assigned in stable
+user-ID order, making retries reproducible. The ledger stores compact net
+positions for fast balance and settlement queries, while immutable expense
+entries remain the source of truth. See [Design](Design.md).
 
 ## Class Diagram
+
+The following Mermaid class diagram introduces the static model: money carries
+exact values, split policies allocate shares, immutable expenses preserve facts,
+the ledger owns consistency, and settlements are derived suggestions. Runtime
+order appears in the next diagram.
 
 ```mermaid
 classDiagram
@@ -38,6 +74,11 @@ classDiagram
 Full diagram: [UML](UML/README.md).
 
 ## Sequence Diagram
+
+The following diagram introduces the successful write path. It shows
+validation, deterministic share allocation, idempotency checking, and the
+atomic journal-and-balance update. Failure and settlement flows appear in the
+detailed sequence documentation.
 
 ```mermaid
 sequenceDiagram

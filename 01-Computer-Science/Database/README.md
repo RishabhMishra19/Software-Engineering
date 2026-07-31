@@ -2,9 +2,25 @@
 
 ## Overview
 
-A database stores, validates, queries, and recovers application data. Database selection is a workload decision: data shape, relationships, consistency, query patterns, scale, operational capability, and ecosystem matter more than popularity.
+A database is an organized, durable memory for an application. Think of a carefully managed records office: it stores facts, checks rules, finds requested records, coordinates simultaneous clerks, keeps copies, and recovers after damage. Technically, a database stores, validates, queries, and recovers application data. Database selection is a workload decision: data shape, relationships, consistency, query patterns, scale, operational capability, and ecosystem matter more than popularity.
 
 Common models include relational tables, documents, key-value records, wide columns, and graphs. One system may use several models—polyglot persistence—when each has a clear ownership boundary.
+
+Use this five-layer mental model before reading the deeper sections:
+
+1. **Everyday model:** a database is a records office that stores facts and
+   enforces filing rules.
+2. **Mechanism:** it writes data to durable storage, builds indexes for faster
+   lookup, and coordinates simultaneous readers and writers.
+3. **Example:** transferring money updates two account balances in one
+   transaction so either both changes commit or neither does.
+4. **Edge cases:** the process may crash, two users may update the same record,
+   a replica may be behind, or the network may split.
+5. **Trade-off:** stronger guarantees and more copies improve correctness or
+   availability, but they add latency, storage, coordination, and operational
+   cost.
+
+**Prerequisites:** Data is recorded information. A row or document is one stored record; a field or column is one named part of it. A query asks the database to read or change data. A server is a program that provides a service over a network. A failure may be a process crash, machine loss, storage fault, or broken network link, and each guarantee covers only stated failure classes.
 
 ## Why do we need it?
 
@@ -23,7 +39,7 @@ Evaluate in this order:
 5. Expected size, throughput, and growth.
 6. Backup, restore, failover, monitoring, and team expertise.
 
-PostgreSQL is a strong default for relational data, complex SQL, constraints, transactions, JSONB, and extensions such as PostGIS. MySQL with InnoDB is a mature relational choice for general web and CRUD workloads. MongoDB fits aggregate-oriented documents and evolving structures when cross-document relationships are limited. Redis commonly serves caches, sessions, counters, and rate limits; Cassandra targets distributed, write-heavy access patterns.
+PostgreSQL is a strong default for relational data, complex Structured Query Language (SQL), constraints, transactions, binary JavaScript Object Notation (JSONB), and extensions such as PostGIS. MySQL with its InnoDB storage engine is a mature relational choice for general web and create, read, update, and delete (CRUD) workloads. MongoDB fits aggregate-oriented documents and evolving structures when cross-document relationships are limited. Redis commonly serves caches, sessions, counters, and rate limits; Cassandra targets distributed, write-heavy access patterns.
 
 ### SQL and NoSQL
 
@@ -44,7 +60,7 @@ Isolation levels trade concurrency for protection against anomalies such as dirt
 
 BASE—Basically Available, Soft state, Eventual consistency—describes designs that favor availability and convergence over immediate consistency. It is not synonymous with NoSQL.
 
-### CAP theorem
+### Consistency, Availability, and Partition tolerance (CAP) theorem
 
 During a network partition, a distributed system cannot guarantee both linearizable consistency and availability for every request. Partition tolerance is not a practical optional choice in distributed deployments; the operational decision during a partition is consistency versus availability. CAP does not describe normal-operation latency or replace transaction analysis.
 
@@ -102,23 +118,23 @@ Selection questions:
 - **Scale:** What are the expected data size, read/write mix, throughput, growth, and global-distribution needs?
 - **Performance:** Which measured access path dominates—point reads, writes, analytical scans, or high-frequency transactions?
 - **Operations:** Can the team reliably run backups, restores, monitoring, replication, failover, upgrades, and scaling?
-- **Ecosystem:** Are the required ORM, migration, backup, cloud, and monitoring integrations mature?
+- **Ecosystem:** Are the required object-relational mapper (ORM), migration, backup, cloud, and monitoring integrations mature?
 
 | Database | Model | Particularly suitable for | Important trade-off |
 | --- | --- | --- | --- |
 | PostgreSQL | Relational SQL with document support | Relationships, financial and enterprise rules, complex SQL, reporting | Distributed write scaling and major schema changes require planning |
-| MySQL/InnoDB | Relational SQL | General web, SaaS, CRUD, mature hosted deployments | Less extensible than PostgreSQL; advanced needs must be compared by current version |
+| MySQL/InnoDB | Relational SQL | General web, software as a service (SaaS), CRUD, mature hosted deployments | Less extensible than PostgreSQL; advanced needs must be compared by current version |
 | MongoDB | Document | Aggregate documents, evolving product models, native sharding | No foreign keys; duplication and cross-document coordination move complexity elsewhere |
 | Redis | Key-value/data structure server | Caches, sessions, counters, rate limits | Usually complements rather than replaces the system of record |
 | Cassandra | Wide-column distributed store | Very large, write-heavy, predefined distributed access paths | Joins and cross-row transactional workflows are a poor fit |
 
 #### PostgreSQL
 
-PostgreSQL supplies transactions, constraints, indexes, relationships, JSON/JSONB, views and materialized views, CTEs, recursive queries, window functions, stored procedures, and extensibility. PostGIS and pgvector are notable extensions; custom types, functions, operators, and index methods broaden its range. It integrates with Spring Boot, Hibernate, Sequelize, Prisma, TypeORM, Flyway, Liquibase, Docker, and Kubernetes.
+PostgreSQL supplies transactions, constraints, indexes, relationships, JavaScript Object Notation (JSON)/JSONB, views and materialized views, common table expressions (CTEs), recursive queries, window functions, stored procedures, and extensibility. PostGIS and pgvector are notable extensions; custom types, functions, operators, and index methods broaden its range. It integrates with Spring Boot, Hibernate, Sequelize, Prisma, TypeORM, Flyway, Liquibase, Docker, and Kubernetes. These named tools are examples of frameworks, object-relational mappers (ORMs), migration tools, and deployment platforms; knowing them is not a prerequisite for understanding the database choice.
 
 Choose it when correctness, relationships, financial operations, sophisticated SQL, reporting, or long-term maintainability dominate. It also works well for startups, SaaS, personal projects, and database-per-service microservices—not only “enterprise” systems. Avoid forcing it onto a workload that is almost entirely unconstrained, rapidly changing documents, or one whose primary hard requirement is turnkey horizontal write distribution. PostgreSQL can scale through tuning, indexing, caching, partitioning, replicas, and distributed extensions, but each mechanism has a different purpose.
 
-> **Professional correction:** UUID is a built-in PostgreSQL data type, and full-text search is a built-in feature; they should not be listed as extensions alongside PostGIS and pgvector.
+> **Professional correction:** Universally Unique Identifier (UUID) is a built-in PostgreSQL data type, and full-text search is a built-in feature; they should not be listed as extensions alongside PostGIS and pgvector.
 
 > **Professional correction:** “PostgreSQL is slower than NoSQL” and “PostgreSQL cannot scale” are category errors. Performance and scale depend on model, workload, topology, indexes, queries, hardware, and operational design.
 
@@ -132,7 +148,7 @@ Choose it for general web and SaaS systems when team familiarity, operational si
 
 #### MongoDB
 
-MongoDB stores BSON documents with nested objects and arrays. Embedding can make aggregate reads natural and reduce joins; document evolution can accelerate early product iteration. Replica sets, sharding, Atlas, validation, aggregation pipelines, and multi-document transactions support production deployments, with integrations including Spring Boot, Express, Mongoose, Prisma, Docker, and Kubernetes.
+MongoDB stores Binary JSON (BSON) documents with nested objects and arrays. Embedding can make aggregate reads natural and reduce joins; document evolution can accelerate early product iteration. Replica sets, sharding, Atlas, validation, aggregation pipelines, and multi-document transactions support production deployments, with integrations including Spring Boot, Express, Mongoose, Prisma, Docker, and Kubernetes.
 
 Choose it when the application normally reads and writes complete aggregate documents, fields evolve, and horizontal distribution is a real requirement. Common examples include content, product catalogs, and profiles. Avoid it when foreign-key relationships, complex relational joins, strict cross-aggregate invariants, or transaction-heavy financial workflows dominate. Embedding may duplicate facts and make updates harder; references are application-enforced because MongoDB has no foreign keys.
 
@@ -301,7 +317,7 @@ Shard only when one database cannot satisfy storage or write throughput, or hard
 
 ### CAP in practice
 
-CAP applies when communication is partitioned. A CP design may reject or delay operations that cannot preserve a single-copy/linearizable view; an AP design continues responding at non-failing nodes and may expose divergent versions requiring reconciliation. Outside partitions, systems still trade latency and consistency, but those are not the CAP impossibility statement.
+CAP applies when communication is partitioned. A consistency-and-partition-tolerant (CP) design may reject or delay operations that cannot preserve a single-copy/linearizable view; an availability-and-partition-tolerant (AP) design continues responding at non-failing nodes and may expose divergent versions requiring reconciliation. Outside partitions, systems still trade latency and consistency, but those are not the CAP impossibility statement.
 
 - CP-oriented scenarios: balance changes, payments, stock allocation, order state, ticket reservations, and trading where accepting a conflicting operation is worse than temporary rejection.
 - AP-oriented scenarios: feeds, likes, view counters, recommendations, catalogs, and some messaging paths where a stale or mergeable response is preferable to unavailability.
@@ -351,7 +367,7 @@ Operational quick checks:
 | --- | --- |
 | Payment, order creation, inventory decrement | Use a short transaction |
 | Read-only query | An explicit transaction is often unnecessary, though the engine still provides statement semantics |
-| Long workflow or remote API call | Keep outside a long-held database transaction; use orchestration/compensation |
+| Long workflow or remote application programming interface (API) call | Keep outside a long-held database transaction; use orchestration/compensation |
 | Selective filter, join key, useful ordering/grouping | Test an index with an execution plan |
 | Tiny table, write-hot or rarely queried column | Usually avoid an additional index unless evidence supports it |
 | Read traffic greatly exceeds write traffic | Evaluate caching and replicas |
@@ -452,116 +468,116 @@ Use these prompts to test reasoning rather than memorized product rankings. Ques
 
 #### Database fundamentals and product selection
 
-- What factors should be evaluated when selecting a database?
-- How would you decide among PostgreSQL, MySQL, and MongoDB?
-- What advantages do relational databases provide?
-- What advantages can a purpose-built NoSQL database provide?
-- Which document, key-value, graph, and wide-column NoSQL models exist, and what workloads fit each?
-- What is polyglot persistence, and when can multiple databases be justified?
-- Why would you choose PostgreSQL rather than MongoDB, and when would that be wrong?
-- Why would you choose PostgreSQL rather than MySQL?
-- Why would you choose MySQL rather than PostgreSQL?
-- Is PostgreSQL suitable for microservices and enterprise applications?
-- Is PostgreSQL only a SQL/table database, or where do JSON/JSONB fit?
-- What are PostgreSQL’s strongest capabilities and operational costs?
-- Does MySQL support ACID transactions, and why does the storage engine matter?
-- Is MySQL suitable for enterprise-scale applications?
-- What are MySQL’s strengths and limitations?
-- Why would you choose MongoDB rather than PostgreSQL?
-- Is MongoDB schema-less?
-- What disadvantages follow from embedding, duplication, and absent foreign keys?
-- When should MongoDB be avoided?
-- Can MongoDB support multi-document transactions and enterprise applications?
+- **What factors should be evaluated when selecting a database?** — Start with invariants, data relationships, reads and writes, consistency, durability, scale, recovery, operations, and team capability.
+- **How would you decide among PostgreSQL, MySQL, and MongoDB?** — Compare the actual model and queries: PostgreSQL favors rich SQL and extensibility, MySQL offers mature relational operations, and MongoDB favors document aggregates and native sharding.
+- **What advantages do relational databases provide?** — Declared schemas, joins, constraints, transactions, mature tooling, and flexible ad hoc queries.
+- **What advantages can a purpose-built NoSQL database provide?** — A document, key-value, graph, or wide-column system can match a specific data shape, access path, or distribution need more directly.
+- **Which document, key-value, graph, and wide-column NoSQL models exist, and what workloads fit each?** — Documents fit aggregates, key-value stores fit direct lookups and caches, graphs fit relationship traversal, and wide-column stores fit enormous distributed writes through predefined queries.
+- **What is polyglot persistence, and when can multiple databases be justified?** — It assigns different owned data to different database models when their benefits exceed integration, consistency, and operating costs.
+- **Why would you choose PostgreSQL rather than MongoDB, and when would that be wrong?** — Choose PostgreSQL for relationships, constraints, transactions, and reporting; reconsider when independently owned document aggregates and native distribution dominate.
+- **Why would you choose PostgreSQL rather than MySQL?** — A required PostgreSQL extension, data type, SQL capability, or customization can decide the choice; preference alone cannot.
+- **Why would you choose MySQL rather than PostgreSQL?** — Existing MySQL expertise, hosting, tooling, and proven workload behavior can outweigh features the application does not need.
+- **Is PostgreSQL suitable for microservices and enterprise applications?** — Yes. Suitability depends on service ownership, workload, topology, and operations, not organization size.
+- **Is PostgreSQL only a SQL/table database, or where do JSON/JSONB fit?** — It is relational but also stores and indexes JSON; JSONB suits flexible attributes without abandoning relational constraints and queries.
+- **What are PostgreSQL’s strongest capabilities and operational costs?** — Rich SQL, integrity, transactions, and extensibility are strengths; tuning, upgrades, schema changes, replicas, and distributed writes require skilled operations.
+- **Does MySQL support ACID transactions, and why does the storage engine matter?** — InnoDB supports Atomicity, Consistency, Isolation, and Durability (ACID); MySQL storage engines can implement different locking, transaction, and persistence behavior.
+- **Is MySQL suitable for enterprise-scale applications?** — Yes, when its exact version, design, capacity, recovery, and operational model satisfy the requirements.
+- **What are MySQL’s strengths and limitations?** — It offers mature relational behavior, broad hosting, replication, and tooling; compare exact advanced features, extension needs, and distributed-write architecture with alternatives.
+- **Why would you choose MongoDB rather than PostgreSQL?** — Choose it when complete document aggregates, evolving fields, and native sharding fit the dominant access patterns.
+- **Is MongoDB schema-less?** — No. It has a flexible schema, but production systems still need validation, versioning, and migrations.
+- **What disadvantages follow from embedding, duplication, and absent foreign keys?** — Facts can diverge, updates touch many documents, and the application must enforce cross-document relationships and repair inconsistencies.
+- **When should MongoDB be avoided?** — Avoid it when relational joins, database-enforced cross-record rules, or transaction-heavy connected workflows dominate.
+- **Can MongoDB support multi-document transactions and enterprise applications?** — Yes; the real question is whether its model and operational trade-offs fit, not whether the feature exists.
 
 #### SQL, NoSQL, ACID, and BASE
 
-- Compare SQL and NoSQL without treating either as one homogeneous product category.
-- Which database characteristics fit a banking system, social platform, or e-commerce system?
-- Can SQL and NoSQL be used together, and how should ownership be divided?
-- Is NoSQL always faster than SQL?
-- What do Atomicity, Consistency, Isolation, and Durability each guarantee?
-- What do Basically Available, Soft state, and Eventual consistency describe?
-- Why do financial systems commonly prefer strong ACID transaction semantics?
-- What is eventual consistency, and what conditions are required for convergence?
-- Can NoSQL databases support ACID transactions?
-- Why do some geographically distributed systems choose BASE-like designs?
-- Is BASE better than ACID, or are they answers to different requirements?
+- **Compare SQL and NoSQL without treating either as one homogeneous product category.** — Compare named products and configurations: SQL describes a relational query tradition, while NoSQL groups several unrelated models with different guarantees.
+- **Which database characteristics fit a banking system, social platform, or e-commerce system?** — Banking prioritizes ledger invariants; social feeds may accept convergence; e-commerce often combines transactional orders with flexible catalogs and caches.
+- **Can SQL and NoSQL be used together, and how should ownership be divided?** — Yes. Give each fact one authoritative owner and define synchronization, failure, and consistency boundaries.
+- **Is NoSQL always faster than SQL?** — No. Model, query, index, hardware, topology, and implementation determine performance.
+- **What do Atomicity, Consistency, Isolation, and Durability each guarantee?** — Atomicity makes work all-or-nothing; consistency preserves declared rules; isolation governs concurrent outcomes; durability preserves acknowledged commits across covered failures.
+- **What do Basically Available, Soft state, and Eventual consistency describe?** — BASE informally describes available distributed designs whose replicas may temporarily differ and later reconcile.
+- **Why do financial systems commonly prefer strong ACID transaction semantics?** — Balances and ledgers require related changes and invariants to hold despite concurrency and failure.
+- **What is eventual consistency, and what conditions are required for convergence?** — Replicas may differ temporarily; convergence requires restored communication, successful reconciliation, and no unresolved stream of conflicting writes.
+- **Can NoSQL databases support ACID transactions?** — Yes. Transaction scope and guarantees depend on the product and configuration.
+- **Why do some geographically distributed systems choose BASE-like designs?** — They may prefer local availability and lower coordination latency when stale or mergeable data is acceptable.
+- **Is BASE better than ACID, or are they answers to different requirements?** — They address different requirements; choose by invariant, failure, latency, and availability needs.
 
 #### CAP theorem
 
-- What exactly does the CAP theorem state?
-- Why can a partitioned distributed system not guarantee both linearizable consistency and availability?
-- How do CP and AP behavior differ during a partition?
-- What is partition tolerance, and why is it operationally unavoidable in a distributed deployment?
-- Which applications commonly favor CP behavior, and which can favor AP behavior?
-- How should CAP be discussed for standalone PostgreSQL versus a distributed PostgreSQL topology?
-- How do MongoDB read/write concerns and topology affect its CAP behavior?
+- **What exactly does the CAP theorem state?** — During a network partition, a distributed system cannot guarantee both linearizable consistency and an eventual non-error response from every non-failing node.
+- **Why can a partitioned distributed system not guarantee both linearizable consistency and availability?** — Separated nodes cannot know whether unseen writes occurred, so they must reject/delay work or risk conflicting accepted states.
+- **How do CP and AP behavior differ during a partition?** — Consistency-and-partition-tolerant (CP) behavior rejects or delays unsafe work; availability-and-partition-tolerant (AP) behavior responds and later reconciles possible divergence.
+- **What is partition tolerance, and why is it operationally unavoidable in a distributed deployment?** — It is continued defined behavior despite lost inter-node communication; real networks can fail, so a distributed design must choose what to do.
+- **Which applications commonly favor CP behavior, and which can favor AP behavior?** — Payments and reservations often favor CP; feeds, counters, and mergeable catalogs can favor AP.
+- **How should CAP be discussed for standalone PostgreSQL versus a distributed PostgreSQL topology?** — CAP does not apply to one standalone node; a replicated topology's behavior depends on its replication, quorum, routing, and failover rules.
+- **How do MongoDB read/write concerns and topology affect its CAP behavior?** — Read preference, read concern, write concern, elections, and replica topology determine which reads and writes remain available and how consistent they are.
 
 #### Transactions
 
-- What is a database transaction, and why is it important?
-- How do commit and rollback differ?
-- What distinguishes a single-statement transaction from a multi-statement transaction?
-- Why should transactions remain short?
-- Which problems remain despite transactions—deadlocks, contention, and isolation anomalies?
-- Can a transaction span multiple databases?
-- Why are distributed transactions and two-phase commit difficult?
-- Why should an external API call not be held inside a database transaction?
+- **What is a database transaction, and why is it important?** — It groups related changes under one consistency and failure boundary so partial business updates do not escape.
+- **How do commit and rollback differ?** — Commit accepts the transaction's changes; rollback abandons its uncommitted changes.
+- **What distinguishes a single-statement transaction from a multi-statement transaction?** — One statement is commonly wrapped automatically, while several statements require an explicit shared boundary when they must succeed together.
+- **Why should transactions remain short?** — Long transactions retain locks or old versions, increase contention, delay cleanup, and enlarge retry cost.
+- **Which problems remain despite transactions—deadlocks, contention, and isolation anomalies?** — Transactions provide configured semantics, not unlimited concurrency; callers still need correct isolation, short work, timeouts, and safe retries.
+- **Can a transaction span multiple databases?** — It can through a distributed protocol, but independent systems do not become atomic automatically.
+- **Why are distributed transactions and two-phase commit difficult?** — Two-phase commit (2PC) adds a coordinator, durable protocol state, blocking failure modes, and tight operational coupling.
+- **Why should an external API call not be held inside a database transaction?** — Unbounded network delay holds scarce database resources, and the remote side effect cannot usually roll back with the database.
 
 #### Indexes and data modeling
 
-- What is an index, and why can it improve query performance?
-- Why do indexes slow inserts, updates, and deletes?
-- How do clustered storage and secondary/non-clustered structures differ by engine?
-- What is a composite index, and how does its leading-column order affect use?
-- When should an index be avoided?
-- How would execution plans, cardinality estimates, and production statistics reveal a missing or ineffective index?
-- What is normalization, and why does it reduce update anomalies?
-- What is denormalization, and when is it justified?
-- Which is better for a given workload: normalization or denormalization?
-- Can normalized sources and denormalized projections be used together?
+- **What is an index, and why can it improve query performance?** — It is a maintained lookup structure that lets the engine inspect a narrow path instead of every row.
+- **Why do indexes slow inserts, updates, and deletes?** — Every affected index must also be changed, logged, cached, and later maintained.
+- **How do clustered storage and secondary/non-clustered structures differ by engine?** — InnoDB stores rows by primary key; PostgreSQL normally uses an unordered heap with separate indexes, so the terms are product-specific.
+- **What is a composite index, and how does its leading-column order affect use?** — It indexes several columns in sequence; a B-tree usually serves predicates beginning with its leading columns.
+- **When should an index be avoided?** — Avoid speculative, duplicate, rarely useful, or write-expensive indexes unless measured query benefit exceeds their cost.
+- **How would execution plans, cardinality estimates, and production statistics reveal a missing or ineffective index?** — Look for large scans, costly sorts, poor row-count estimates, high examined-to-returned ratios, and repeated slow predicates under representative data.
+- **What is normalization, and why does it reduce update anomalies?** — It stores each fact in one authoritative place, preventing copies from being updated inconsistently.
+- **What is denormalization, and when is it justified?** — It deliberately duplicates or precomputes data for a measured read path with defined synchronization and repair.
+- **Which is better for a given workload: normalization or denormalization?** — Normalize correctness-sensitive sources; denormalize only selected read paths whose measured benefit warrants added consistency work.
+- **Can normalized sources and denormalized projections be used together?** — Yes. This is a common production design when ownership and refresh behavior are explicit.
 
 #### Locking and pooling
 
-- What is database locking?
-- How do optimistic and pessimistic concurrency control differ?
-- When would you choose optimistic locking?
-- When would you choose pessimistic locking?
-- What is a deadlock, how does a database resolve one, and how should a caller react?
-- How can short transactions, lock order, narrow lock scope, and timeouts reduce deadlock risk?
-- Why is optimistic locking common in read-heavy web applications?
-- What is connection pooling and why is connection creation expensive?
-- Why should every request not establish a fresh connection?
-- What happens when a pool is exhausted?
-- How should pool size be chosen across multiple application instances?
+- **What is database locking?** — It coordinates conflicting operations by delaying or rejecting access to protected data or structures.
+- **How do optimistic and pessimistic concurrency control differ?** — Optimistic control detects a changed version at write time; pessimistic control reserves access before the change.
+- **When would you choose optimistic locking?** — When conflicts are rare, holding locks is wasteful, and retry or user-visible conflict handling is acceptable.
+- **When would you choose pessimistic locking?** — When conflicts are likely, the protected operation is short, and preventing concurrent modification is cheaper than repeated retries.
+- **What is a deadlock, how does a database resolve one, and how should a caller react?** — A wait cycle prevents progress; the database aborts a participant, and the caller safely retries the entire transaction when policy allows.
+- **How can short transactions, lock order, narrow lock scope, and timeouts reduce deadlock risk?** — They shorten overlap, avoid cycles, reduce participants, and bound waits, although they cannot prove deadlocks impossible.
+- **Why is optimistic locking common in read-heavy web applications?** — Most reads need no reservation, and infrequent write conflicts can be detected with a version field.
+- **What is connection pooling and why is connection creation expensive?** — A pool reuses bounded sessions; fresh connections require network setup, authentication, memory, and database session initialization.
+- **Why should every request not establish a fresh connection?** — Repeated setup adds latency and can exhaust database connection capacity during bursts.
+- **What happens when a pool is exhausted?** — Callers queue until a connection returns or an acquisition timeout fails the request.
+- **How should pool size be chosen across multiple application instances?** — Budget total database sessions across all replicas, then load-test queue time, query latency, locks, CPU, and saturation.
 
 #### Replication, partitioning, and sharding
 
-- What is replication, and which availability/read-scaling problems does it solve?
-- What is replication lag, and why can users observe stale reads?
-- How do synchronous and asynchronous replication trade latency against data-loss exposure?
-- Does replication improve write performance?
-- Why can replication never replace independent backups?
-- What is table partitioning?
-- What is database sharding?
-- How do partitioning and sharding differ conceptually and operationally?
-- When should a large table be partitioned?
-- When should a database be sharded?
-- Why are routing, cross-shard work, rebalancing, and distributed transactions difficult?
-- Can partitioning and sharding be combined?
+- **What is replication, and which availability/read-scaling problems does it solve?** — It maintains copies that can serve tolerant reads and support failover or recovery, subject to lag and configuration.
+- **What is replication lag, and why can users observe stale reads?** — A replica applies changes after the leader, so a routed read may arrive before the latest change does.
+- **How do synchronous and asynchronous replication trade latency against data-loss exposure?** — Synchronous acknowledgement waits for configured replicas and costs latency; asynchronous acknowledgement returns sooner but leaves an unreplicated-loss window.
+- **Does replication improve write performance?** — Read replicas normally do not increase one leader's write capacity and may add replication work.
+- **Why can replication never replace independent backups?** — It reproduces deletion, corruption, and hostile writes; backups retain separate recoverable history.
+- **What is table partitioning?** — It divides one logical table into manageable pieces that queries may prune.
+- **What is database sharding?** — It assigns different subsets of data to independently scalable database nodes or clusters.
+- **How do partitioning and sharding differ conceptually and operationally?** — Partitioning is logical table layout; sharding distributes ownership and introduces routing and cross-node coordination.
+- **When should a large table be partitioned?** — When pruning, retention, archival, or maintenance benefits align with a reliable partition key.
+- **When should a database be sharded?** — Only when measured storage, write, geographic, or tenancy requirements exceed a simpler database boundary.
+- **Why are routing, cross-shard work, rebalancing, and distributed transactions difficult?** — No single node owns all facts, so coordination, movement, failure recovery, and global invariants cross independent systems.
+- **Can partitioning and sharding be combined?** — Yes. Each shard can partition its own large tables for local pruning and maintenance.
 
 #### Scenario questions
 
-- You are building a banking application. Which database and transaction model would you choose, and why?
-- Millions of user profiles have frequently changing fields. Which model would you evaluate, and what validation would you retain?
-- Reads are ten times writes. Which query, cache, index, and replica measurements come before scaling?
-- A query on a large table takes seconds. What plans, statistics, predicates, indexes, schema choices, and resource evidence would you inspect before scaling?
-- Writes exceed one server’s capacity. Which vertical, batching, partitioning, and sharding options would you evaluate?
-- Users occasionally read stale replica data. Why, and which read-routing or consistency mechanism can address it?
-- The same rows receive frequent conflicting updates. Which locking strategy fits, and how will timeout/retry behavior work?
-- A product catalog is slow because of many joins. Would a measured denormalized projection or document aggregate help?
-- A table has hundreds of millions of rows. Is the problem table maintenance/query pruning or whole-database capacity, and therefore partitioning or sharding?
-- How would you decide between SQL and a specific NoSQL database for a new application?
+- **You are building a banking application. Which database and transaction model would you choose, and why?** — Start with a mature relational database, database-enforced ledger constraints, and short ACID transactions because balance invariants dominate; then verify audit and recovery requirements.
+- **Millions of user profiles have frequently changing fields. Which model would you evaluate, and what validation would you retain?** — Evaluate MongoDB documents or PostgreSQL JSONB against query and relationship needs; retain server validation, database constraints or collection validators, versioning, and migrations.
+- **Reads are ten times writes. Which query, cache, index, and replica measurements come before scaling?** — Measure slow query plans, cache hit rate and freshness, index effectiveness and write cost, read consistency needs, replica lag, and actual database saturation.
+- **A query on a large table takes seconds. What plans, statistics, predicates, indexes, schema choices, and resource evidence would you inspect before scaling?** — Inspect the execution plan, estimated versus actual rows, filter selectivity, joins, sorts, index coverage, partition pruning, blocking, CPU, memory, and disk input/output (I/O).
+- **Writes exceed one server’s capacity. Which vertical, batching, partitioning, and sharding options would you evaluate?** — First remove inefficient writes and indexes, batch safely, tune and scale the node, then evaluate local partitioning and finally sharding with a measured routing key.
+- **Users occasionally read stale replica data. Why, and which read-routing or consistency mechanism can address it?** — Asynchronous replication lags; route read-after-write traffic to the primary or use a session/replication-position guarantee.
+- **The same rows receive frequent conflicting updates. Which locking strategy fits, and how will timeout/retry behavior work?** — A short pessimistic lock may reduce wasted retries; bound lock waits, order acquisitions consistently, and retry deadlock victims idempotently.
+- **A product catalog is slow because of many joins. Would a measured denormalized projection or document aggregate help?** — Possibly; prove the read bottleneck, choose one authoritative source, and define refresh, staleness, and repair before duplicating data.
+- **A table has hundreds of millions of rows. Is the problem table maintenance/query pruning or whole-database capacity, and therefore partitioning or sharding?** — Use partitioning for local pruning and lifecycle work; shard only when total storage or writes exceed one database boundary.
+- **How would you decide between SQL and a specific NoSQL database for a new application?** — Model invariants and dominant access paths, name the required guarantees and failure behavior, test candidate products, and include the team's operating capability.
 
 ## Interview Tips
 

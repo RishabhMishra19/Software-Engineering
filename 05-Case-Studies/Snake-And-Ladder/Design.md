@@ -1,5 +1,18 @@
 # Design
 
+## Beginner Design Map
+
+`Board` exists to validate and resolve board topology; `Game` exists to make a
+whole turn one legal state change; `Dice` separates randomness; `SequenceDice`
+makes tests repeatable; and `TurnResult` reports what happened without exposing
+mutable internals. The normal flow is one call to `playTurn`, from validation
+through position commit and player advancement.
+
+Serial execution keeps two players from taking the same turn. A persisted
+service would compare an aggregate version. Construction rejects transition
+cycles so resolution terminates; explicit exceptions keep invalid input from
+silently corrupting game state.
+
 ## Boundaries
 `Board` is an immutable rules object. It validates transition topology once and resolves a landing without mutating game state. `Game` is the aggregate root: it owns players, positions, active-player index, status, and winner. `Dice` is an injected port; `SequenceDice` is a deterministic adapter used by the executable self-test.
 

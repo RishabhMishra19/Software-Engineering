@@ -8,6 +8,20 @@
 > Both are retained because the source explains how the model grows, while the
 > implementation demonstrates a safer final design.
 
+## Beginner Design Map
+
+The real-world problem is coordinating physical capacity, admission records,
+and payment while several gates work at once. A floor groups spots, a strategy
+chooses among them, a ticket records one stay, a fee strategy computes exact
+money, and gates translate external requests while `ParkingLot` keeps the whole
+lifecycle consistent.
+
+Read the source-derived track as the interview model being built step by step.
+Then read the hardened track as explicit corrections for races, time, money,
+failures, and validation. The normal path is claim → occupy → ticket → price →
+pay → release; the critical failure rule is that unsuccessful payment must not
+release a physical space.
+
 ## Design Tracks
 
 ### Source-derived teaching design

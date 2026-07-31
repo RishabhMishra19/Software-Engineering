@@ -1,5 +1,16 @@
 # Requirements
 
+## Beginner Orientation
+
+This model enforces the rules of one turn-based game. A client asks `Game` to
+play; `Player` identifies each participant; `Dice` supplies movement; and
+`Board` owns snakes, ladders, and the final square. The game starts `ACTIVE` and
+has no winner, then changes once to `WON` when a player reaches the end.
+
+The normal turn is roll → check overshoot → resolve board transitions → update
+position → win or advance player. Validation and edge cases prevent impossible
+boards, concurrent turns, unknown players, and changes after completion.
+
 ## Scope
 The model is an in-memory game engine. UI, networking, authentication, persistence, and matchmaking are outside scope.
 

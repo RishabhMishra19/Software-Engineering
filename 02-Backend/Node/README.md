@@ -2,7 +2,9 @@
 
 ## Overview
 
-Node.js is a JavaScript runtime built on V8. It combines a single JavaScript event loop with operating-system asynchronous I/O, a libuv worker pool for selected operations, and optional worker threads or child processes for parallel work. Frameworks such as Express, Fastify, and NestJS add HTTP and application structure.
+Node.js runs JavaScript outside a web browser. Think of its main event loop as one coordinator who starts many outside tasks, records how to handle their results, and keeps taking new requests instead of waiting beside each task. Technically, Node.js is a JavaScript runtime built on the V8 engine. It combines a single JavaScript event loop with operating-system (OS) asynchronous input/output (I/O), a libuv worker pool for selected operations, and optional worker threads or child processes for parallel work. Frameworks such as Express, Fastify, and NestJS add Hypertext Transfer Protocol (HTTP) and application structure.
+
+**Prerequisites:** JavaScript is a programming language; TypeScript adds compile-time type checking to it. A runtime executes a program. A callback is code registered to run after an operation completes. A thread is one sequence of executing instructions, and a central processing unit (CPU) core can execute work. An application programming interface (API) is a contract through which software communicates.
 
 ## Why do we need it?
 
@@ -12,13 +14,15 @@ Choose it for I/O-heavy APIs, gateways, streaming, and real-time systems when th
 
 ## How does it work?
 
-The event loop runs JavaScript callbacks and advances queued work through phases. Network I/O is generally handled through non-blocking operating-system facilities. Some filesystem, DNS, compression, and cryptographic operations use libuv's worker pool. Promise continuations and `process.nextTick` use high-priority queues that can starve normal I/O when abused.
+The event loop runs JavaScript callbacks and advances queued work through phases. Network I/O is generally handled through non-blocking operating-system facilities. Some filesystem, Domain Name System (DNS), compression, and cryptographic operations use libuv's worker pool. Promise continuations and `process.nextTick` use high-priority queues that can starve normal I/O when abused.
 
 CPU-bound JavaScript blocks the event loop. Partition such work, move it to worker threads or separate services, or use native implementations. Multiple processes can use multiple cores and improve fault isolation.
 
 Minimal frameworks provide routing and middleware while leaving validation, dependency injection, logging, security, and project structure to the application. This flexibility speeds small systems but demands explicit conventions as the codebase grows. Structured frameworks trade some simplicity for modules and dependency injection.
 
 Background work should use durable queues when it must survive process failure. Handlers must be idempotent, retries bounded, and queue lag monitored.
+
+For example, an API handler can start three independent service requests, await them together, and combine their results. While those requests wait on networks, the event loop can serve other clients. If the handler instead performs a long image transformation in JavaScript, every callback on that event-loop thread waits; moving that CPU work to a worker restores responsiveness.
 
 ### Trade-offs
 
@@ -27,6 +31,14 @@ Background work should use durable queues when it must survive process failure. 
 - A large package ecosystem accelerates delivery but increases supply-chain and upgrade exposure.
 - Minimal frameworks maximize choice; opinionated frameworks improve consistency for larger teams.
 - TypeScript improves static checks but does not validate untrusted runtime input.
+
+### Edge cases and production behavior
+
+- An `async` function does not make CPU work parallel; it only provides suspension around promises.
+- A flood of promise continuations or `process.nextTick` callbacks can delay timers and network events even without one visibly long function.
+- The libuv worker pool is bounded. Slow filesystem or cryptographic work can queue behind other operations that use the same pool.
+- A process can accept a connection just before shutdown; graceful termination must stop intake, finish bounded in-flight work, close resources, and eventually force exit.
+- Production systems monitor event-loop delay, heap and garbage collection, open handles, worker-pool pressure, queue lag, latency percentiles, and dependency failures.
 
 ## Advantages
 
@@ -77,8 +89,8 @@ Express.js is a minimal Node.js web framework. It supplies routing, middleware c
 ### Advantages
 
 - **Lightweight:** a small core is quick to start and understand.
-- **Flexible:** teams choose their folder structure, ORM, validation, authentication, and other libraries.
-- **Fast development:** minimal setup supports prototypes, REST APIs, and small services.
+- **Flexible:** teams choose their folder structure, object-relational mapper (ORM), validation, authentication, and other libraries.
+- **Fast development:** minimal setup supports prototypes, Representational State Transfer (REST) APIs, and small services.
 - **Large ecosystem:** middleware exists for common web concerns.
 - **I/O-oriented runtime:** Node.js suits APIs, chat, real-time connections, and streaming when handlers remain non-blocking.
 
@@ -89,14 +101,14 @@ Express.js is a minimal Node.js web framework. It supplies routing, middleware c
 - A production service usually combines many packages whose compatibility, updates, provenance, and security must be maintained.
 - Express can support a large enterprise application, but it does not provide enterprise architecture by itself; a structured framework such as NestJS may reduce the amount a team must invent.
 
-Choose Express for lightweight APIs, MVPs, simple microservices, WebSocket services, JavaScript/TypeScript teams, and situations where flexibility and delivery speed outweigh built-in conventions. Prefer a more opinionated or integrated stack when complex business rules, many teams, strong modularity, or extensive production features require consistent defaults.
+Choose Express for lightweight APIs, minimum viable products (MVPs), simple microservices, WebSocket services that support two-way persistent communication, JavaScript/TypeScript teams, and situations where flexibility and delivery speed outweigh built-in conventions. Prefer a more opinionated or integrated stack when complex business rules, many teams, strong modularity, or extensive production features require consistent defaults.
 
 | Framework | Strong fit | Caution |
 | --- | --- | --- |
 | Express.js | Minimal APIs, MVPs, flexible services | Large applications need explicit architecture |
 | NestJS | Structured TypeScript modules and dependency injection | More setup than a tiny API requires |
 | Spring Boot | Complex enterprise rules, transactions, integrated Java ecosystem | Heavier for a small prototype |
-| FastAPI | Python APIs, AI/ML and data services | Requires Python expertise and ecosystem fit |
+| FastAPI | Python APIs, artificial intelligence and machine learning (AI/ML), and data services | Requires Python expertise and ecosystem fit |
 
 ### Express misconceptions
 
@@ -106,7 +118,7 @@ Choose Express for lightweight APIs, MVPs, simple microservices, WebSocket servi
 
 ## Java versus Node.js
 
-Java is a statically typed language and JVM platform with mature enterprise tooling, multithreading, and strong support for CPU-intensive and transaction-heavy systems. Node.js is a JavaScript runtime optimized for coordinating concurrent I/O through its event loop and asynchronous facilities.
+Java is a statically typed language and Java Virtual Machine (JVM) platform with mature enterprise tooling, multithreading, and strong support for CPU-intensive and transaction-heavy systems. Node.js is a JavaScript runtime optimized for coordinating concurrent I/O through its event loop and asynchronous facilities.
 
 | Feature | Java | Node.js |
 | --- | --- | --- |
@@ -116,7 +128,7 @@ Java is a statically typed language and JVM platform with mature enterprise tool
 | Startup and footprint | Common enterprise stacks are typically heavier | Typically lighter and faster to start |
 | CPU-intensive work | Strong multithreaded options | Must be partitioned or moved to workers/processes |
 | I/O-intensive work | Strong, with blocking or non-blocking stacks | Strong when the event loop remains unblocked |
-| Ecosystem | Mature JVM and enterprise ecosystem | Large npm and web ecosystem |
+| Ecosystem | Mature JVM and enterprise ecosystem | Large Node Package Manager (npm) and web ecosystem |
 | Development trade-off | More explicit structure and ceremony | Rapid iteration with more architectural choices |
 
 Choose Java when strong type guarantees, complex long-lived business logic, mature transaction/security tooling, CPU parallelism, or large-team conventions dominate. Choose Node.js for rapid API delivery, real-time connections, shared frontend/backend language skills, and primarily I/O-bound coordination.

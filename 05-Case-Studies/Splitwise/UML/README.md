@@ -1,5 +1,14 @@
 # Splitwise Class Model
 
+Start with one expense: a `Split` allocates an exact `Money` total, an immutable
+`Expense` stores the result, and `ExpenseLedger` updates balances and can derive
+`Settlement` suggestions. `EqualSplit` and `ExactSplit` exist as replaceable
+allocation policies; `Money` centralizes exact arithmetic; the ledger is the
+atomic consistency boundary.
+
+The following Mermaid class diagram shows those static relationships. It does
+not imply that a settlement changes balances.
+
 ```mermaid
 classDiagram
     class Money {

@@ -1,5 +1,11 @@
 # Request Service Sequence
 
+Read this Mermaid sequence from top to bottom for one serialized controller.
+`Controller` supplies requests and ticks, `Elevator` owns safety state, and the
+LOOK scheduler only chooses direction. The normal path closes the door, moves
+one floor per later tick, and opens only after stopping; invalid requests fail
+before entering this flow.
+
 ```mermaid
 sequenceDiagram
     actor Controller

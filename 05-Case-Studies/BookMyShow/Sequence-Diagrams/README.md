@@ -2,6 +2,12 @@
 
 ## Successful Checkout
 
+These diagrams show time from top to bottom. In the normal flow, the customer
+holds seats, creates a pending booking, and receives confirmation after a
+provider callback. The second flow explains the race between customers and an
+expiry worker; serialization and a conditional version check prevent both a
+double booking and an old worker releasing newer state.
+
 ```mermaid
 sequenceDiagram
     actor Customer
@@ -25,6 +31,11 @@ sequenceDiagram
 ```
 
 ## Concurrent Hold and Expiry
+
+This second Mermaid sequence introduces the main race and cleanup edge case.
+Customers A and B ask for the same seat while an expiry worker may later release
+it. The inventory authority orders those writes, and the worker supplies the
+hold version so it cannot erase a confirmed booking or a newer hold.
 
 ```mermaid
 sequenceDiagram

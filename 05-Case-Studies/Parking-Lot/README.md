@@ -13,6 +13,22 @@ A low-level design for a multi-floor parking facility with multiple entry and ex
 
 Design a parking lot that admits bikes, cars, and trucks, assigns each vehicle a compatible free spot, issues a ticket, calculates a fee at exit, records payment, and releases the spot. Multiple gates may operate concurrently without allocating the same spot twice.
 
+## Actors, Entities, States, and Normal Flow
+
+A **driver** uses an **entry gate** and **exit gate**; an **operator** reads a
+**display board**; an **administrator** configures floors, spots, and policies.
+A `Vehicle` identifies what needs parking, a `ParkingSpot` is one physical
+space, a `Ticket` binds them for one stay, and a `Payment` records the exit
+charge. Spots are free or occupied; tickets are `ACTIVE` or `PAID`; payments
+are `PENDING`, `SUCCESS`, or `FAILED`.
+
+The ordinary path is: validate vehicle → atomically claim a compatible spot →
+create an active ticket → calculate the fee at exit → capture payment → mark
+the ticket paid → release the spot. Two gates can race for one spot, so pool,
+spot, ticket, and vehicle-index changes share one lock in the sample. Fees use
+integer minor units; failed payment leaves the spot occupied so physical and
+recorded state stay consistent.
+
 ## Functional Requirements
 
 - Manage multiple floors, spots, entry gates, and exit gates.

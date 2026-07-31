@@ -6,6 +6,50 @@ The project was developed in a FinTech environment during 2023–2024 with Java,
 
 > **Editorial addition:** This consolidated case study distinguishes source-described behavior from professional corrections and recommendations. It does not claim measured latency, adoption, query reduction, or effort-reduction figures because the sources provide none.
 
+## Beginner Orientation
+
+### Real-world problem
+
+An operations analyst may find a suspicious transaction but still needs to
+follow its merchant, customer, settlement, banking, and dispute records. Before
+this platform, each investigation path required manual module hopping or a new
+hardcoded API. “Global Search” therefore means cross-module **investigation**,
+not replacing each module's ordinary search.
+
+### Actors, entities, and states
+
+- **Operations and implementation teams** run investigations and define
+  approved workflows.
+- A `SearchRequest` supplies a configuration, allowed search column, and value.
+- `SearchConfiguration` describes modules and parent-child edges.
+- The traversal and query engines fetch rows; the normalized store deduplicates
+  them; the response builder creates the hierarchy; React presents it.
+- A configuration should move through draft, validated, published, and retired
+  operational states, although the historical source does not define that
+  lifecycle. A request is rejected, running, successful-empty, successful with
+  results, or failed; these names are explanatory, not source enums.
+
+### Normal flow before architecture
+
+1. An analyst submits a known identifier.
+2. The backend loads and validates a published configuration.
+3. It queries the root module and stores each row once by table and ID.
+4. For every configured edge, it collects and deduplicates parent values, then
+   fetches children in batches instead of one query per parent.
+5. After acquisition ends, a separate in-memory pass builds the hierarchy.
+6. The frontend resolves hierarchy IDs against normalized records and renders
+   the investigation.
+
+Concurrent searches mostly read independent state; the important consistency
+boundary is the immutable configuration version used for an entire request.
+Database rows can change during a long investigation, so production must choose
+snapshot or documented read-consistency semantics. Amount fields are business
+data, not calculated or transferred by this platform; authorization, redaction,
+and exact database types still matter. Failures include invalid metadata,
+unsafe identifiers, timeouts, partial database availability, excessive depth,
+and oversized results. Later sections preserve the source behavior and label
+professional corrections, complexity qualifications, and trade-offs.
+
 ## Table of Contents
 
 - [Project at a Glance](#project-at-a-glance)
@@ -93,6 +137,10 @@ The design goals were:
 ## Architecture
 
 ### High-level components
+
+The following Mermaid flowchart introduces the major runtime components and the
+direction data moves during one normal investigation. It is an architecture
+view, not a class diagram or a guarantee that every arrow is a network call.
 
 ```mermaid
 flowchart TD

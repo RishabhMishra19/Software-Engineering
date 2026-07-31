@@ -1,5 +1,18 @@
 # Requirements
 
+## Beginner Orientation
+
+The real-world problem is safe local control of one car, not dispatching an
+entire building. The controller is the caller; `Elevator` owns pending stops and
+three separate state dimensions: direction, movement, and door position. A
+normal request is validated, queued, approached one floor per control tick,
+removed on arrival, and served only after movement stops.
+
+Separating `UP/DOWN/IDLE`, `MOVING/STOPPED`, and `OPEN/CLOSED` exposes illegal
+combinations such as moving with an open door. The caller serializes commands,
+so the sample has no thread race; production hardware needs an event loop and
+sensor confirmation.
+
 ## Scope
 The model represents one elevator car and its local stop scheduler. A building-wide dispatcher, physical sensors, passengers, capacity, persistence, and real-time timing are outside scope.
 

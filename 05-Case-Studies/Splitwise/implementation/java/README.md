@@ -1,5 +1,10 @@
 # Splitwise Java demo
 
+The linked [Splitwise.java](Splitwise.java) is the runnable reference behind this case study.
+Read the overview and normal flow first; then use the source to see how the
+classes enforce states, failures, and invariants. The command below compiles it
+into a temporary output directory, so it does not add build artifacts here.
+
 Requires JDK 17 or newer. From the repository root:
 
 ```sh

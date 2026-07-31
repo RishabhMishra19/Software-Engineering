@@ -1,5 +1,10 @@
 # Turn Sequence
 
+Read this Mermaid sequence from top to bottom for one atomic turn. `Client`
+starts it, `Dice` provides movement, `Board` resolves snakes or ladders, and
+`Game` alone commits position, status, winner, and next-player state. Serialized
+calls prevent two clients from advancing the same turn concurrently.
+
 ```mermaid
 sequenceDiagram
     actor Client

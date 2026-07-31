@@ -2,7 +2,9 @@
 
 ## Overview
 
-Authentication verifies that a principal—human, service, or device—is who it claims to be. It establishes identity; [authorization](../Authorization/README.md) separately determines permitted actions.
+Authentication answers “Who are you?” Think of showing an identity document at a secure entrance: the check establishes a claimed identity but does not grant access to every room. Technically, authentication verifies that a principal—human, service, or device—is who it claims to be. [Authorization](../Authorization/README.md) separately answers “What may this identity do?”
+
+**Prerequisites:** A credential is evidence used to prove identity, such as a password, hardware key, or signed token. A client requests access from a server. Encryption makes data unreadable without a key; hashing produces a one-way derived value and is used differently.
 
 ## Why do we need it?
 
@@ -14,25 +16,27 @@ Systems need a trustworthy identity before protecting private data, attributing 
 
 The server stores a salted output from a password-hashing function, not the password or a reversible encryption. On login it hashes the supplied password using the stored parameters and compares in constant time. Argon2id is a preferred modern choice; bcrypt and scrypt remain established options when configured appropriately.
 
-Rate limiting, breached-password screening, multi-factor authentication, and generic failure messages reduce guessing and enumeration risk.
+Rate limiting, breached-password screening, multi-factor authentication (MFA), and generic failure messages reduce guessing and enumeration risk. MFA requires evidence from more than one factor category, such as something known and something possessed.
 
 ### Sessions
 
 With server-side sessions, the browser stores an opaque identifier in a cookie while session state remains server-side. Cookies should use `Secure`, `HttpOnly`, and an appropriate `SameSite` policy. Rotate the identifier after authentication or privilege changes and invalidate it on logout or compromise.
 
-Stateful sessions simplify revocation but require shared or sticky session storage across instances. CSRF protection is required when browsers automatically attach credentials to cross-site requests.
+Stateful sessions simplify revocation but require shared or sticky session storage across instances. Cross-site request forgery (CSRF) protection is required when browsers automatically attach credentials to cross-site requests.
 
 ### Tokens
 
-Bearer access tokens authorize possession; anyone who obtains one can use it until expiry or revocation. JWT is a token format, not an authentication protocol. Validate the expected algorithm, signature, issuer, audience, time claims, and application-specific claims. Keep access tokens short-lived and never accept an algorithm chosen outside trusted configuration.
+Bearer access tokens authorize possession; anyone who obtains one can use it until expiry or revocation. JSON Web Token (JWT) is a token format, not an authentication protocol. Validate the expected algorithm, signature, issuer, audience, time claims, and application-specific claims. Keep access tokens short-lived and never accept an algorithm chosen outside trusted configuration.
 
-Refresh-token rotation can provide longer sessions while detecting reuse. Store browser tokens in secure cookies when possible; persistent JavaScript-accessible storage increases exposure to cross-site scripting.
+Refresh-token rotation can provide longer sessions while detecting reuse. Store browser tokens in secure cookies when possible; persistent JavaScript-accessible storage increases exposure to cross-site scripting (XSS), in which untrusted script executes in the application's browser context.
 
 ### Federated identity
 
-OAuth 2.0 is an authorization framework. OpenID Connect adds authentication and identity claims. For browser and native clients, Authorization Code with PKCE protects the code exchange. Validate `state`, `nonce` where applicable, redirect URIs, issuer, and token audience.
+OAuth 2.0—the protocol's name, not an acronym expanded by its specification—is an authorization framework. OpenID Connect (OIDC) adds authentication and identity claims. For browser and native clients, Authorization Code with Proof Key for Code Exchange (PKCE) protects the code exchange. Validate `state`, `nonce` where applicable, redirect Uniform Resource Identifiers (URIs), issuer, and token audience.
 
-Service authentication commonly uses short-lived workload identities, signed tokens, or mutual TLS instead of shared long-lived secrets.
+Service authentication commonly uses short-lived workload identities, signed tokens, or mutual Transport Layer Security (mTLS) instead of shared long-lived secrets.
+
+A typical OIDC login works as follows: the application sends the browser to a trusted identity provider with a one-time challenge; the user authenticates there; the application exchanges the returned code plus its PKCE verifier for validated tokens; then it creates a local session. Redirect validation, `state`, and `nonce` bind the response to the initiating flow.
 
 ### Trade-offs
 
@@ -40,6 +44,14 @@ Service authentication commonly uses short-lived workload identities, signed tok
 - Self-contained tokens reduce per-request lookup but complicate revocation and claim freshness.
 - Passwordless and federated login reduce local password risk but add provider and recovery dependencies.
 - Stronger factors improve assurance but can increase user friction and recovery complexity.
+
+### Edge cases and production behavior
+
+- Account recovery is another authentication path. A weak recovery process defeats a strong primary login.
+- Clock differences can make a newly issued token appear premature or expired; validators allow only a small deliberate tolerance.
+- Logging out of one application session may not terminate an upstream identity-provider session or every device session.
+- Token signature validity proves who signed the claims, not that every claim is fresh or that the current action is authorized.
+- Production systems monitor failures, suspicious velocity, factor enrollment and recovery, token-key rotation, session revocation delay, and identity-provider availability without logging credentials.
 
 ## Advantages
 
@@ -100,9 +112,9 @@ Start with threat model and client type. Name the credential, where it is stored
 
 ## References
 
-- [NIST SP 800-63B: Authentication and Lifecycle Management](https://pages.nist.gov/800-63-4/sp800-63b.html)
-- [OWASP Authentication Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Authentication_Cheat_Sheet.html)
+- [National Institute of Standards and Technology (NIST) Special Publication (SP) 800-63B: Authentication and Lifecycle Management](https://pages.nist.gov/800-63-4/sp800-63b.html)
+- [Open Worldwide Application Security Project (OWASP) Authentication Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Authentication_Cheat_Sheet.html)
 - [OWASP Password Storage Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html)
-- [RFC 9700: OAuth 2.0 Security Best Current Practice](https://www.rfc-editor.org/rfc/rfc9700)
+- [Request for Comments (RFC) 9700: OAuth 2.0 Security Best Current Practice](https://www.rfc-editor.org/rfc/rfc9700)
 - [OpenID Connect Core 1.0](https://openid.net/specs/openid-connect-core-1_0.html)
 - [RFC 7519: JSON Web Token](https://www.rfc-editor.org/rfc/rfc7519)
