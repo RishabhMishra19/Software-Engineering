@@ -1,5 +1,7 @@
 # Concurrency
 
+> **Provenance:** Editorial addition.
+
 ## Overview
 
 Concurrency is the coordination of multiple tasks whose execution overlaps. Parallelism is simultaneous execution on multiple processing units. Concurrent programs must preserve correctness under nondeterministic scheduling, shared state, cancellation, and failure.

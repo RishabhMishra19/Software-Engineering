@@ -1,5 +1,7 @@
 # Operating System
 
+> **Provenance:** Editorial addition.
+
 ## Overview
 
 An operating system (OS) manages hardware resources and provides abstractions—processes, virtual memory, files, sockets, and permissions—on which applications depend. The kernel executes with elevated privilege; user-space programs access protected services through system calls.
@@ -95,4 +97,4 @@ Explain mechanisms as a sequence: application action, privilege transition, kern
 - [Operating Systems: Three Easy Pieces](https://pages.cs.wisc.edu/~remzi/OSTEP/)
 - [Linux kernel documentation](https://docs.kernel.org/)
 - [POSIX.1-2024](https://pubs.opengroup.org/onlinepubs/9799919799/)
-- [Microsoft Windows architecture](https://learn.microsoft.com/en-us/windows-hardware/drivers/gettingstarted/windows-architecture)
+- [Microsoft: User mode and kernel mode](https://learn.microsoft.com/en-us/windows-hardware/drivers/gettingstarted/user-mode-and-kernel-mode)

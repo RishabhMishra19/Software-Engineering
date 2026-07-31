@@ -1,5 +1,7 @@
 # Elevator
 
+> **Provenance:** Editorial addition; the matching source stub was empty.
+
 ## Problem Statement
 Model one elevator car that accepts floor requests, schedules stops, moves deterministically, and never opens its doors while moving.
 

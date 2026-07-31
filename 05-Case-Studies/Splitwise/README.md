@@ -1,5 +1,7 @@
 # Splitwise
 
+> **Provenance:** Editorial addition; the matching source stub was empty.
+
 ## Problem Statement
 Design a shared-expense service that records who paid, allocates exact monetary shares, maintains consistent balances, and suggests settlements without losing cents or duplicating retried expenses.
 

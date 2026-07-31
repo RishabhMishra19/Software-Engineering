@@ -2,6 +2,8 @@
 
 This repository is a structured learning and reference library for software engineers. It connects computer-science foundations with backend and frontend development, system and object-oriented design, applied case studies, and production operations.
 
+Migration provenance: this handbook consolidates material from [Learning-Engineering](https://github.com/RishabhMishra19/Learning-Engineering) and [Learning-LLD](https://github.com/RishabhMishra19/Learning-LLD); migrated, newly authored, and professionally corrected content is identified under the [contribution policy](CONTRIBUTING.md#provenance-policy).
+
 ## Table of contents
 
 - [Topics covered](#topics-covered)

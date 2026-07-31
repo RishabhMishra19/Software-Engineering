@@ -1,5 +1,7 @@
 # Networking
 
+> **Provenance:** Editorial addition.
+
 ## Overview
 
 Computer networking moves data between processes across unreliable, heterogeneous links. Layered protocols separate concerns: link technologies carry local frames, IP routes packets, transport protocols connect processes, and application protocols define meaning.

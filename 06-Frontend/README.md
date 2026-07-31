@@ -1,5 +1,7 @@
 # Frontend
 
+> **Provenance:** Editorial addition.
+
 ## Overview
 
 Frontend engineering builds the user-facing system that runs primarily in browsers or native web views. It combines semantic UI, state and data flow, networking, performance, accessibility, security, testing, and deployment under unreliable device and network conditions.

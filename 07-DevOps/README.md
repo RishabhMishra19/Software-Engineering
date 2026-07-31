@@ -1,5 +1,7 @@
 # DevOps
 
+> **Provenance:** Editorial addition.
+
 ## Overview
 
 DevOps is a set of technical and organizational practices that shortens the path from a reviewed change to reliable production operation. It joins version control, continuous integration and delivery, infrastructure as code, observability, security, incident response, and feedback loops; it is not merely a team name or toolchain.

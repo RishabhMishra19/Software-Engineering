@@ -95,6 +95,16 @@ Any accompanying code must support the documented design, remain scoped to its c
 - Clearly distinguish quotations and adapted material from original writing.
 - Do not copy substantial text or imagery without permission.
 
+## Provenance policy
+
+Label migrated or restoration content with one of these terms:
+
+- **Source-derived:** Content preserved or adapted from a source repository. Link to the source repository or file and identify substantial adaptation.
+- **Editorial addition:** Content newly written for this repository rather than derived from a source. When relevant, state that the matching source stub was empty or that no source counterpart existed.
+- **Professional correction:** A factual, security, compatibility, or quality correction to source-derived content. Retain the source attribution and briefly identify the material correction.
+
+Use the narrowest accurate label, combine labels when a document contains materially different origins, and never present editorial additions or corrections as source-derived text.
+
 ## Writing standards
 
 - Write in clear, concise English for a reader learning the subject.

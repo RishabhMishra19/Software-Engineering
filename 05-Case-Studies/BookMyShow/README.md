@@ -1,5 +1,7 @@
 # BookMyShow
 
+> **Provenance:** Editorial addition; the matching source stub was empty.
+
 ## Problem Statement
 Design a ticketing service that lets users discover a show, temporarily reserve seats, pay, and receive a booking without overselling inventory during concurrent demand.
 

@@ -1,5 +1,7 @@
 # Snake and Ladder
 
+> **Provenance:** Editorial addition; no source counterpart existed.
+
 ## Problem Statement
 Model a turn-based race in which players move from square 0 to the final square, following snakes and ladders after each valid move.
 
