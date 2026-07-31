@@ -1,6 +1,68 @@
 # Parking Lot Sequence Diagrams
 
-## Vehicle Entry
+## Source-derived teaching flow
+
+The source builds the lifecycle in two stages. Entry delegates from the gate
+to the lot, uses the configured strategy to find the first compatible free
+spot, occupies it, and creates an active ticket:
+
+```mermaid
+sequenceDiagram
+    actor Driver
+    participant Gate as EntryGate
+    participant Lot as ParkingLot
+    participant Strategy as NearestSpotStrategy
+    participant Spot as ParkingSpot
+
+    Driver->>Gate: enter(vehicle)
+    Gate->>Lot: parkVehicle(vehicle)
+    Lot->>Strategy: findSpot(vehicle, floors)
+    Strategy-->>Lot: first matching spot or null
+    alt spot found
+        Lot->>Spot: park(vehicle)
+        Lot->>Lot: create and index ACTIVE ticket
+        Lot-->>Gate: ticket
+        Gate-->>Driver: ticket
+    else no spot
+        Lot-->>Gate: "No Spot Available"
+    end
+```
+
+Exit in the source is requested by vehicle number. The gate validates the
+active ticket, delegates pricing, creates a payment that succeeds immediately,
+marks the ticket paid, and asks the lot to release the spot:
+
+```mermaid
+sequenceDiagram
+    actor Driver
+    participant Gate as ExitGate
+    participant Lot as ParkingLot
+    participant Fee as FeeStrategy
+    participant Payment
+    participant Ticket
+    participant Spot as ParkingSpot
+
+    Driver->>Gate: exit(vehicleNumber)
+    Gate->>Lot: getTicket(vehicleNumber)
+    Lot-->>Gate: ACTIVE ticket
+    Gate->>Fee: calculateFee(ticket)
+    Fee-->>Gate: amount
+    Gate->>Payment: new PENDING payment
+    Gate->>Payment: markSuccess()
+    Gate->>Ticket: markPaid()
+    Gate->>Lot: unparkVehicle(vehicleNumber)
+    Lot->>Spot: removeVehicle()
+    Lot->>Lot: remove active-ticket index
+    Gate-->>Driver: SUCCESS payment
+```
+
+That compact sequence is the source's interview teaching design. It does not
+model concurrent claims, failed payment, partial rollback, or a distinct
+payment processor.
+
+## Editorial hardened design / Professional corrections
+
+### Vehicle entry
 
 ```mermaid
 sequenceDiagram
@@ -28,7 +90,7 @@ sequenceDiagram
 
 If no compatible pool contains a spot, allocation fails without creating a ticket. The lock makes pool removal, occupancy, and ticket indexing one atomic operation.
 
-## Payment and Exit
+### Payment and exit
 
 ```mermaid
 sequenceDiagram
@@ -62,5 +124,12 @@ sequenceDiagram
         Note over Ticket,Spot: Ticket remains ACTIVE; spot remains occupied
     end
 ```
+
+The hardened flow intentionally differs: it exits by ticket ID, injects time
+and payment behavior, preserves the occupied spot after payment failure, and
+atomically updates the spot, availability pool, ticket state, and active
+indexes. The sample processor is local and deterministic; a production remote
+capture should use a `PAYMENT_PENDING` workflow, idempotency, and short
+transactional finalization rather than holding a JVM lock across network I/O.
 
 [Back to the case study](../README.md)

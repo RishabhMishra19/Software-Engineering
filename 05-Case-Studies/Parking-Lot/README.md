@@ -2,6 +2,13 @@
 
 A low-level design for a multi-floor parking facility with multiple entry and exit gates, compatible vehicle/spot types, pluggable allocation and pricing, tickets, payments, and live availability.
 
+> **Provenance.** Source-derived teaching content is restored from
+> `/tmp/software-engineering-sources/Learning-LLD/04-case-studies/parking-lot.md`.
+> The runnable implementation and professional corrections are editorial
+> hardening of that design. [Design.md](Design.md) labels the two tracks
+> explicitly so source behavior is preserved without presenting known
+> simplifications as production-safe behavior.
+
 ## Problem Statement
 
 Design a parking lot that admits bikes, cars, and trucks, assigns each vehicle a compatible free spot, issues a ticket, calculates a fee at exit, records payment, and releases the spot. Multiple gates may operate concurrently without allocating the same spot twice.
@@ -27,6 +34,10 @@ Full scope: [Requirements.md](Requirements.md).
 
 ## Design Decisions
 
+- **Two documented tracks:** the source-derived design preserves the
+  incremental interview walkthrough, explicit class hierarchies, display
+  board, source strategies, flows, patterns, follow-ups, and revision notes;
+  the hardened track explains every deliberate implementation correction.
 - **Parking lot as aggregate root:** it coordinates floors, active tickets, allocation, payment, and release.
 - **Floors partition spots:** this mirrors a physical facility and keeps availability local.
 - **Availability pools:** each floor maintains a deque per spot type, avoiding a scan of every spot.
@@ -35,17 +46,23 @@ Full scope: [Requirements.md](Requirements.md).
 - **Gates stay thin:** entry delegates parking; exit delegates validation, pricing, payment, and release.
 - **Display is a projection:** availability is read from pool counts rather than recomputed by scanning spots.
 
-Detailed rationale: [Design.md](Design.md).
+Detailed source coverage and corrected rationale: [Design.md](Design.md).
 
 ## Class Diagram
 
-The model centers on `ParkingLot`, with floors owning spots and gates delegating to the aggregate. Tickets bind vehicles to spots; payments settle tickets.
+The source-derived diagram retains `Bike`/`Car`/`Truck` and spot subclasses;
+the hardened diagram uses typed values and adds compatibility, payment
+processing, pools, and lifecycle coordination. Both center on `ParkingLot`,
+with floors owning spots and gates delegating to the aggregate.
 
 [Open the full class diagram](UML/README.md).
 
 ## Sequence Diagram
 
-Entry atomically claims a compatible spot before creating a ticket. Exit validates an active ticket, calculates and captures payment, marks the ticket paid, then returns the spot to its availability pool.
+The sequence documentation includes the source's compact entry/exit teaching
+flow and the hardened atomic lifecycle. In the corrected flow, entry claims a
+compatible spot before creating a ticket; exit validates, prices, captures,
+marks paid, and only then returns the spot to its pool.
 
 [Open the entry and exit sequences](Sequence-Diagrams/README.md).
 
